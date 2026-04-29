@@ -104,3 +104,12 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
+
+android.applicationVariants.all {
+    if (buildType.name == "release") {
+        outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output.outputFileName = "DriveSwipe-v${versionName}.apk"
+        }
+    }
+}
