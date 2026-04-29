@@ -1,5 +1,6 @@
 package com.example.driveswipe
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -98,8 +99,7 @@ class MainUiStateTest {
     @Test
     fun defaultStateHasDefaultAppSettings() {
         val state = MainUiState()
-        // Verify the embedded AppSettings carries its own defaults
         assertFalse(state.settings.isNightMode)
-        assertTrue(state.gestureHistory.isEmpty())
+        assertEquals(GesturePreset.STANDARD, state.settings.selectedPreset)
     }
 }
