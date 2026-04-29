@@ -7,3 +7,6 @@ local.properties
 *.log
 output.txt
 debug.txt
+keystore.properties
+*.jks
+*.keystore

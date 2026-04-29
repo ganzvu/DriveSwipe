@@ -97,7 +97,7 @@ class GestureService : LifecycleService(), SensorEventListener {
         // Use a default android icon since we might not have a mipmap launcher icon yet
         val notification: Notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("DriveSwipe Active")
-            .setContentText("Listening for BMW Gestures...")
+            .setContentText("Listening for hand gestures...")
             .setSmallIcon(android.R.drawable.ic_media_play)
             .build()
 
