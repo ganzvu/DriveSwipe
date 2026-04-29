@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -81,6 +82,7 @@ fun DriveSwipeApp(
                     uiState = uiState,
                     onToggleService = onToggleService,
                     onNightModeChanged = onNightModeChanged,
+                    onPresetSelected = onPresetSelected,
                     onGoSetup = { navController.navigate(Route.Setup) },
                     onGoGestures = { navController.navigate(Route.Gestures) },
                     onGoModes = { navController.navigate(Route.Modes) },
@@ -108,10 +110,12 @@ fun DriveSwipeApp(
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 private fun HomeScreen(
     uiState: MainUiState,
     onToggleService: (Boolean) -> Unit,
     onNightModeChanged: (Boolean) -> Unit,
+    onPresetSelected: (GesturePreset) -> Unit,
     onGoSetup: () -> Unit,
     onGoGestures: () -> Unit,
     onGoModes: () -> Unit,
@@ -143,6 +147,22 @@ private fun HomeScreen(
             Text("Night Mode")
             Spacer(modifier = Modifier.weight(1f))
             Switch(checked = uiState.settings.isNightMode, onCheckedChange = onNightModeChanged)
+        }
+
+        Text("Preset")
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            GesturePreset.entries.forEach { preset ->
+                FilterChip(
+                    selected = uiState.settings.selectedPreset == preset,
+                    onClick = { onPresetSelected(preset) },
+                    label = { Text(preset.name.lowercase().replaceFirstChar { it.uppercase() }) }
+                )
+            }
         }
 
         if (!uiState.isDriveReady) {
@@ -237,51 +257,96 @@ private fun GestureSettingsScreen(
             Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text("Tuning") })
         }
 
-        when (tab) {
-            0 -> {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    GesturePreset.entries.forEach { preset ->
-                        FilterChip(
-                            selected = preset == uiState.settings.selectedPreset,
-                            onClick = { onPresetSelected(preset) },
-                            label = { Text(preset.name) }
-                        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            when (tab) {
+                0 -> {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        GesturePreset.entries.forEach { preset ->
+                            FilterChip(
+                                selected = preset == uiState.settings.selectedPreset,
+                                onClick = { onPresetSelected(preset) },
+                                label = { Text(preset.name) }
+                            )
+                        }
                     }
                 }
-            }
-            1 -> {
-                MappingEditor("Pinch_Drag_Right", uiState.settings.mappings.pinchDragRight, onMappingChanged)
-                MappingEditor("Pinch_Drag_Left", uiState.settings.mappings.pinchDragLeft, onMappingChanged)
-                MappingEditor("Two_Finger_Point", uiState.settings.mappings.twoFingerPoint, onMappingChanged)
-                MappingEditor("Volume_Up", uiState.settings.mappings.volumeUp, onMappingChanged)
-                MappingEditor("Volume_Down", uiState.settings.mappings.volumeDown, onMappingChanged)
-            }
-            else -> {
-                TuningSlider(
-                    title = "Action cooldown (${tuning.actionCooldownMs}ms)",
-                    value = tuning.actionCooldownMs.toFloat(),
-                    range = 500f..3000f,
-                    onValueChange = { onTuningChanged(tuning.copy(actionCooldownMs = it.toLong())) }
-                )
-                TuningSlider(
-                    title = "Volume tick (${tuning.volumeTickMs}ms)",
-                    value = tuning.volumeTickMs.toFloat(),
-                    range = 200f..1000f,
-                    onValueChange = { onTuningChanged(tuning.copy(volumeTickMs = it.toLong())) }
-                )
-                TuningSlider(
-                    title = "Pinch threshold (${String.format("%.2f", tuning.pinchThreshold)})",
-                    value = tuning.pinchThreshold,
-                    range = 0.05f..0.15f,
-                    onValueChange = { onTuningChanged(tuning.copy(pinchThreshold = it)) }
-                )
-                TuningSlider(
-                    title = "Swipe threshold (${String.format("%.2f", tuning.swipeThreshold)})",
-                    value = tuning.swipeThreshold,
-                    range = 0.10f..0.25f,
-                    onValueChange = { onTuningChanged(tuning.copy(swipeThreshold = it)) }
-                )
-                TextButton(onClick = onResetTuning) { Text("Reset tuning") }
+                1 -> {
+                    MappingEditor("Pinch_Drag_Right", uiState.settings.mappings.pinchDragRight, onMappingChanged)
+                    MappingEditor("Pinch_Drag_Left", uiState.settings.mappings.pinchDragLeft, onMappingChanged)
+                    MappingEditor("Two_Finger_Point", uiState.settings.mappings.twoFingerPoint, onMappingChanged)
+                    MappingEditor("Volume_Up", uiState.settings.mappings.volumeUp, onMappingChanged)
+                    MappingEditor("Volume_Down", uiState.settings.mappings.volumeDown, onMappingChanged)
+                }
+                else -> {
+                    TuningSlider(
+                        title = "Action cooldown (${tuning.actionCooldownMs}ms)",
+                        value = tuning.actionCooldownMs.toFloat(),
+                        range = 500f..3000f,
+                        onValueChange = { onTuningChanged(tuning.copy(actionCooldownMs = it.toLong())) }
+                    )
+                    TuningSlider(
+                        title = "Volume tick (${tuning.volumeTickMs}ms)",
+                        value = tuning.volumeTickMs.toFloat(),
+                        range = 200f..1000f,
+                        onValueChange = { onTuningChanged(tuning.copy(volumeTickMs = it.toLong())) }
+                    )
+                    TuningSlider(
+                        title = "Pinch threshold (${String.format("%.2f", tuning.pinchThreshold)})",
+                        value = tuning.pinchThreshold,
+                        range = 0.05f..0.15f,
+                        onValueChange = { onTuningChanged(tuning.copy(pinchThreshold = it)) }
+                    )
+                    TuningSlider(
+                        title = "Swipe threshold (${String.format("%.2f", tuning.swipeThreshold)})",
+                        value = tuning.swipeThreshold,
+                        range = 0.10f..0.25f,
+                        onValueChange = { onTuningChanged(tuning.copy(swipeThreshold = it)) }
+                    )
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "Advanced customization",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Use only when fine-tuning detection behavior."
+                            )
+                            TuningSlider(
+                                title = "Pinch release threshold (${String.format("%.2f", tuning.pinchReleaseThreshold)})",
+                                value = tuning.pinchReleaseThreshold,
+                                range = 0.10f..0.30f,
+                                onValueChange = {
+                                    onTuningChanged(tuning.copy(pinchReleaseThreshold = it))
+                                }
+                            )
+                            TuningSlider(
+                                title = "Swipe timeout (${tuning.swipeTimeoutMs}ms)",
+                                value = tuning.swipeTimeoutMs.toFloat(),
+                                range = 500f..2500f,
+                                onValueChange = {
+                                    onTuningChanged(tuning.copy(swipeTimeoutMs = it.toLong()))
+                                }
+                            )
+                        }
+                    }
+                    TextButton(onClick = onResetTuning) { Text("Reset tuning") }
+                }
             }
         }
     }
@@ -306,12 +371,12 @@ private fun MappingEditor(
                 }
             }
             if (expanded) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     DriveAction.entries.forEach { action ->
                         FilterChip(
                             selected = action == currentAction,
                             onClick = { onMappingChanged(gestureKey, action) },
-                            label = { Text(action.name) }
+                            label = { Text(action.name.replace('_', ' ')) }
                         )
                     }
                 }

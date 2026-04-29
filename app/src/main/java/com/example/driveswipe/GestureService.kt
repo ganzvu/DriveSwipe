@@ -29,7 +29,8 @@ import java.util.concurrent.Executors
 class GestureService : LifecycleService(), SensorEventListener {
 
     private lateinit var cameraExecutor: ExecutorService
-    private lateinit var gestureRecognizerHelper: GestureRecognizerHelper
+    @Volatile
+    private var gestureRecognizerHelper: GestureRecognizerHelper? = null
     
     private lateinit var sensorManager: SensorManager
     private var proximitySensor: Sensor? = null
@@ -46,16 +47,6 @@ class GestureService : LifecycleService(), SensorEventListener {
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         proximitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)
 
-        gestureRecognizerHelper = GestureRecognizerHelper(
-            context = this,
-            gestureListener = object : GestureRecognizerHelper.GestureListener {
-                override fun onGestureRecognized(gestureName: String) {
-                    handleGesture(gestureName)
-                }
-            },
-            tuning = settings.tuning
-        )
-        
         startForegroundService()
     }
 
@@ -90,7 +81,7 @@ class GestureService : LifecycleService(), SensorEventListener {
             )
         )
 
-        gestureRecognizerHelper.updateTuning(settings.tuning)
+        gestureRecognizerHelper?.updateTuning(settings.tuning)
     }
 
     private fun startForegroundService() {
@@ -135,12 +126,23 @@ class GestureService : LifecycleService(), SensorEventListener {
             val cameraProvider = cameraProviderFuture.get()
             
             val imageAnalyzer = ImageAnalysis.Builder()
-                .setTargetResolution(Size(640, 480))
+                .setTargetResolution(Size(480, 360))
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
                 .also {
                     it.setAnalyzer(cameraExecutor) { imageProxy ->
-                        gestureRecognizerHelper.recognizeImage(imageProxy)
+                        val helper = gestureRecognizerHelper ?: GestureRecognizerHelper(
+                            context = this,
+                            gestureListener = object : GestureRecognizerHelper.GestureListener {
+                                override fun onGestureRecognized(gestureName: String) {
+                                    handleGesture(gestureName)
+                                }
+                            },
+                            tuning = settings.tuning
+                        ).also { created ->
+                            gestureRecognizerHelper = created
+                        }
+                        helper.recognizeImage(imageProxy)
                     }
                 }
 
@@ -158,6 +160,10 @@ class GestureService : LifecycleService(), SensorEventListener {
     }
 
     private fun stopCamera() {
+        cameraExecutor.execute {
+            gestureRecognizerHelper?.clear()
+            gestureRecognizerHelper = null
+        }
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
             cameraProviderFuture.get().unbindAll()
@@ -253,7 +259,7 @@ class GestureService : LifecycleService(), SensorEventListener {
         super.onDestroy()
         cameraExecutor.shutdown()
         sensorManager.unregisterListener(this)
-        gestureRecognizerHelper.clear()
+        gestureRecognizerHelper?.clear()
     }
 
     private fun parseAction(actionName: String?, fallback: DriveAction): DriveAction {

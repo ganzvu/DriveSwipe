@@ -9,6 +9,7 @@ import androidx.camera.core.ImageProxy
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.framework.image.MPImage
 import com.google.mediapipe.tasks.core.BaseOptions
+import com.google.mediapipe.tasks.core.Delegate
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.gesturerecognizer.GestureRecognizer
 import com.google.mediapipe.tasks.vision.gesturerecognizer.GestureRecognizerResult
@@ -16,10 +17,14 @@ import com.google.mediapipe.tasks.vision.gesturerecognizer.GestureRecognizerResu
 class GestureRecognizerHelper(
     val context: Context,
     val gestureListener: GestureListener,
-    private var tuning: GestureTuning = GestureTuning()
+    private var tuning: GestureTuning = GestureTuning(),
+    private val preferredDelegate: Delegate = Delegate.GPU,
+    private val minInferenceIntervalMs: Long = 55L
 ) {
     private var gestureRecognizer: GestureRecognizer? = null
     private var modelBuffer: java.nio.ByteBuffer? = null
+    private var lastInferenceTimeMs = 0L
+    private var inferenceInFlight = false
     
     // Swipe & Motion tracking
     private var startX = -1f
@@ -28,6 +33,14 @@ class GestureRecognizerHelper(
     private var isTracking = false
     private var lastActionTime = 0L
     private var lastRecognizedGesture = "" // State Latch to prevent holding a gesture from rapid firing
+    private var pinchCandidateFrames = 0
+    private var releaseCandidateFrames = 0
+    private var previousPinchDist2D = Float.NaN
+
+    private val pinchConfirmFrames = 3
+    private val pinchReleaseFrames = 2
+    private val minSwipeAgeMs = 120L
+    private val horizontalDominanceRatio = 1.35f
 
     init {
         setupGestureRecognizer()
@@ -55,39 +68,61 @@ class GestureRecognizerHelper(
 
     private fun setupGestureRecognizer() {
         modelBuffer = loadModelAsMappedBuffer() // Hold strong reference to prevent GC!
-        val baseOptions = BaseOptions.builder()
-            .setModelAssetBuffer(modelBuffer)
-            .setDelegate(com.google.mediapipe.tasks.core.Delegate.CPU)
-            .build()
-
-        val options = GestureRecognizer.GestureRecognizerOptions.builder()
-            .setBaseOptions(baseOptions)
-            .setRunningMode(RunningMode.LIVE_STREAM)
-            .setResultListener(this::returnLivestreamResult)
-            .setErrorListener(this::returnLivestreamError)
-            .build()
-
-        try {
-            gestureRecognizer = GestureRecognizer.createFromOptions(context.applicationContext, options)
-        } catch (e: Exception) {
-            Log.e("DriveSwipe", "GestureRecognizer setup failed", e)
+        val delegates = if (preferredDelegate == Delegate.GPU) {
+            listOf(Delegate.GPU, Delegate.CPU)
+        } else {
+            listOf(Delegate.CPU)
         }
+        for (delegate in delegates) {
+            val baseOptions = BaseOptions.builder()
+                .setModelAssetBuffer(modelBuffer)
+                .setDelegate(delegate)
+                .build()
+
+            val options = GestureRecognizer.GestureRecognizerOptions.builder()
+                .setBaseOptions(baseOptions)
+                .setRunningMode(RunningMode.LIVE_STREAM)
+                .setResultListener(this::returnLivestreamResult)
+                .setErrorListener(this::returnLivestreamError)
+                .build()
+
+            try {
+                gestureRecognizer = GestureRecognizer.createFromOptions(context.applicationContext, options)
+                Log.i("DriveSwipe", "GestureRecognizer delegate active: $delegate")
+                return
+            } catch (e: Exception) {
+                Log.w("DriveSwipe", "GestureRecognizer setup failed for $delegate", e)
+            }
+        }
+        Log.e("DriveSwipe", "GestureRecognizer setup failed for all delegates")
     }
 
     fun recognizeImage(imageProxy: ImageProxy) {
         val frameTime = SystemClock.uptimeMillis()
-        val bitmap = imageProxy.toBitmap()
-        
-        // Front camera usually requires horizontal flip and rotation
-        val matrix = Matrix().apply {
-            postRotate(imageProxy.imageInfo.rotationDegrees.toFloat())
-            postScale(-1f, 1f) // Mirror
+        if (inferenceInFlight || frameTime - lastInferenceTimeMs < minInferenceIntervalMs) {
+            imageProxy.close()
+            return
         }
-        val rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-        
-        val mpImage = BitmapImageBuilder(rotatedBitmap).build()
-        gestureRecognizer?.recognizeAsync(mpImage, frameTime)
-        imageProxy.close()
+        inferenceInFlight = true
+        try {
+            val bitmap = imageProxy.toBitmap()
+
+            // Front camera usually requires horizontal flip and rotation
+            val matrix = Matrix().apply {
+                postRotate(imageProxy.imageInfo.rotationDegrees.toFloat())
+                postScale(-1f, 1f) // Mirror
+            }
+            val rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+
+            val mpImage = BitmapImageBuilder(rotatedBitmap).build()
+            gestureRecognizer?.recognizeAsync(mpImage, frameTime)
+            lastInferenceTimeMs = frameTime
+        } catch (e: Exception) {
+            inferenceInFlight = false
+            Log.e("DriveSwipe", "Failed to process frame", e)
+        } finally {
+            imageProxy.close()
+        }
     }
 
     private var lastVolumeTickTime = 0L
@@ -97,6 +132,7 @@ class GestureRecognizerHelper(
     }
 
     private fun returnLivestreamResult(result: GestureRecognizerResult, mpImage: MPImage) {
+        inferenceInFlight = false
         val now = SystemClock.elapsedRealtime()
 
         if (result.landmarks().isNotEmpty()) {
@@ -141,9 +177,35 @@ class GestureRecognizerHelper(
 
             Log.d("DriveSwipe_Vision", "Gesture: $gestureName, Score: $score, PinchDist2D: $pinchDist2D")
 
-            val isPinching = pinchDist2D < tuning.pinchThreshold
+            val pinchEngageThreshold = tuning.pinchThreshold * 0.84f
+            val pinchReleaseThreshold = maxOf(tuning.pinchReleaseThreshold, pinchEngageThreshold * 1.55f)
+            val pinchDepthGap = Math.abs(thumbTip.z() - indexTip.z())
+            val pinchSpeed = if (previousPinchDist2D.isFinite()) {
+                Math.abs(previousPinchDist2D - pinchDist2D)
+            } else {
+                0f
+            }
+            previousPinchDist2D = pinchDist2D
 
-            // Cooldown for Swipes and Play/Pause
+            // Filter out likely false positives:
+            // - low confidence hand classifications
+            // - classes that explicitly indicate non-pinch postures
+            // - fingertip overlap caused by perspective/depth mismatch
+            val likelyNonPinchGesture = gestureName == "Open_Palm" ||
+                gestureName == "Victory" ||
+                gestureName == "Closed_Fist" ||
+                gestureName == "Pointing_Up"
+            val pinchGatePassed = score >= 0.55f && !likelyNonPinchGesture && pinchDepthGap < 0.07f
+            val pinchCandidate = pinchGatePassed && pinchDist2D < pinchEngageThreshold && pinchSpeed < 0.035f
+
+            if (pinchCandidate) {
+                pinchCandidateFrames = (pinchCandidateFrames + 1).coerceAtMost(10)
+            } else {
+                pinchCandidateFrames = 0
+            }
+            val isPinching = pinchCandidateFrames >= pinchConfirmFrames
+
+            // Cooldown for one-shot gestures, swipes and play/pause
             if (now - lastActionTime >= tuning.actionCooldownMs) {
                 // 2. BMW "Two-Finger Point" (Play/Pause)
                 if (gestureName == "Victory" && score > 0.5f) {
@@ -166,6 +228,7 @@ class GestureRecognizerHelper(
                         startTime = now
                         Log.d("DriveSwipe_Vision", "Pinch Engaged! Wrist Anchor set.")
                     }
+
                 }
                 
                 if (isTracking) {
@@ -179,7 +242,11 @@ class GestureRecognizerHelper(
                     // It only needs to travel 15% of the screen, and we allow massive 45-degree diagonal slants!
                     if (dt > tuning.swipeTimeoutMs) {
                         isTracking = false // Timed out
-                    } else if (Math.abs(dx) > tuning.swipeThreshold && Math.abs(dx) > Math.abs(dy)) {
+                    } else if (
+                        dt >= minSwipeAgeMs &&
+                        Math.abs(dx) > tuning.swipeThreshold &&
+                        Math.abs(dx) > (Math.abs(dy) * horizontalDominanceRatio)
+                    ) {
                         if (dx > 0) {
                             gestureListener.onGestureRecognized("Pinch_Drag_Right")
                             lastRecognizedGesture = "Pinch_Drag_Right"
@@ -193,23 +260,35 @@ class GestureRecognizerHelper(
                     }
                     
                     // Abort tracking only if they massively let go of the pinch (> 15% apart)
-                    if (!isPinching && pinchDist2D > tuning.pinchReleaseThreshold) {
+                    val releaseCandidate = pinchDist2D > pinchReleaseThreshold || !pinchGatePassed
+                    if (releaseCandidate) {
+                        releaseCandidateFrames = (releaseCandidateFrames + 1).coerceAtMost(10)
+                    } else {
+                        releaseCandidateFrames = 0
+                    }
+                    if (releaseCandidateFrames >= pinchReleaseFrames) {
                         isTracking = false
+                        pinchCandidateFrames = 0
+                        releaseCandidateFrames = 0
                         Log.d("DriveSwipe_Vision", "Pinch broken! Tracker aborted.")
                     }
                 }
             }
 
-            if (gestureName == "None" || gestureName == "Open_Palm") {
+            if (gestureName == "None") {
                 lastRecognizedGesture = ""
             }
         } else {
             isTracking = false
             lastRecognizedGesture = "" 
+            pinchCandidateFrames = 0
+            releaseCandidateFrames = 0
+            previousPinchDist2D = Float.NaN
         }
     }
 
     private fun returnLivestreamError(error: RuntimeException) {
+        inferenceInFlight = false
         Log.e("DriveSwipe", "Gesture recognition error", error)
     }
 
