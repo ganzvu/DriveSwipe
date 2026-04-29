@@ -1,78 +1,89 @@
 # DriveSwipe
 
-DriveSwipe is an Android app for touchless in-car media control using hand gestures.
-It uses CameraX + MediaPipe to recognize gestures and map them to media actions such as next/previous track, play/pause, and volume.
+DriveSwipe is an Android app for touchless in-car media control using camera-based hand gestures.
+It uses CameraX + MediaPipe for live gesture recognition and maps recognized gestures to media actions (track, play/pause, volume).
 
-## Highlights
+## Features
 
-- Jetpack Compose multi-screen UI (`Home`, `Setup`, `Gestures`, `Modes`, `History`)
-- Foreground camera gesture service for day mode
-- Proximity-sensor shortcut mode for low-light/night conditions
-- Configurable gesture-to-action mapping
-- Gesture tuning controls (cooldowns, thresholds, swipe timing)
-- Settings persistence via DataStore
-- Runtime gesture event feed shown in app history
+- Compose multi-screen UX (`Home`, `Setup`, `Gestures`, `Modes`, `History`)
+- Foreground gesture service for reliable in-drive operation
+- Day/Night operating modes (camera + proximity flow)
+- Gesture mapping and tuning controls in-app
+- DataStore-backed persistent settings
+- Runtime gesture history feed for quick validation
+- Branded launcher icon and signed release build support
 
-## Current Gesture Controls
+## Gesture Set
 
-- `Pinch_Drag_Right` -> mapped action (default: next track)
-- `Pinch_Drag_Left` -> mapped action (default: previous track)
-- `Two_Finger_Point` -> mapped action (default: play/pause)
-- `Thumb_Up` -> mapped action (default: volume up, repeat by tick interval)
-- `Thumb_Down` -> mapped action (default: volume down, repeat by tick interval)
+- `Pinch_Drag_Right` -> mapped action (default `NEXT_TRACK`)
+- `Pinch_Drag_Left` -> mapped action (default `PREVIOUS_TRACK`)
+- `Two_Finger_Point` -> mapped action (default `PLAY_PAUSE`)
+- `Thumb_Up` -> mapped action (default `VOLUME_UP`, repeat by tick interval)
+- `Thumb_Down` -> mapped action (default `VOLUME_DOWN`, repeat by tick interval)
 
-## Tech Stack
+## Stack
 
 - Kotlin
 - Jetpack Compose + Material 3
 - AndroidX Navigation
 - CameraX
-- Google MediaPipe Tasks Vision (`com.google.mediapipe:tasks-vision`)
-- DataStore Preferences
+- MediaPipe Tasks Vision (`com.google.mediapipe:tasks-vision`)
 - Coroutines
+- DataStore Preferences
 
 ## Requirements
 
 - Android Studio (latest stable recommended)
 - Android SDK 34
-- Min Android version: 26
-- A device with front camera (and optional proximity sensor for night mode)
+- Min SDK 26
+- Front camera device (proximity sensor optional but recommended)
 
-## Build and Run
+## Build
 
-### Debug build
+### Debug
 
 ```bash
 ./gradlew.bat :app:assembleDebug
 ```
 
-### Release build
+Output:
+- `app/build/outputs/apk/debug/app-debug.apk`
+
+### Release
 
 ```bash
 ./gradlew.bat :app:assembleRelease
 ```
 
-Generated APKs:
+Output:
+- `app/build/outputs/apk/release/DriveSwipe-v1.0.apk`
 
-- Debug: `app/build/outputs/apk/debug/app-debug.apk`
-- Release: `app/build/outputs/apk/release/app-release.apk`
+## Release Signing Setup
 
-## Project Structure
+This project reads local signing config from `keystore.properties` (git-ignored).
 
-- `app/src/main/java/com/example/driveswipe/MainActivity.kt`  
-  Compose host + service start/stop + permission orchestration
-- `app/src/main/java/com/example/driveswipe/DriveSwipeApp.kt`  
-  App navigation and screens
-- `app/src/main/java/com/example/driveswipe/GestureService.kt`  
-  Foreground service, camera analyzer, media action dispatch
-- `app/src/main/java/com/example/driveswipe/GestureRecognizerHelper.kt`  
-  MediaPipe inference, gesture logic, pinch-drag tracking
-- `app/src/main/java/com/example/driveswipe/SettingsRepository.kt`  
-  DataStore-backed app settings persistence
-- `app/src/main/java/com/example/driveswipe/DriveSwipeModels.kt`  
-  Shared models (actions, mappings, tuning, settings)
+1. Copy template:
+   - `keystore.properties.example` -> `keystore.properties`
+2. Fill your real values:
+   - `storeFile`
+   - `storePassword`
+   - `keyAlias`
+   - `keyPassword`
+3. Build release:
+   - `./gradlew.bat :app:assembleRelease`
+
+Do not commit `keystore.properties` or `.jks` files.
+
+## Repository Layout
+
+- `app/src/main/java/com/example/driveswipe/MainActivity.kt` - app host + permission/service orchestration
+- `app/src/main/java/com/example/driveswipe/DriveSwipeApp.kt` - app UI shell and screens
+- `app/src/main/java/com/example/driveswipe/GestureService.kt` - foreground service and media action dispatch
+- `app/src/main/java/com/example/driveswipe/GestureRecognizerHelper.kt` - inference pipeline and pinch/gesture logic
+- `app/src/main/java/com/example/driveswipe/SettingsRepository.kt` - DataStore persistence layer
+- `app/src/main/java/com/example/driveswipe/DriveSwipeModels.kt` - shared settings/action models
 
 ## Notes
 
-- Release signing is currently default project setup. Configure your own signing config for production distribution.
-- Camera/notification listener permissions are required for full functionality.
+- Camera and notification listener permissions are required for full functionality.
+- There are known non-blocking build warnings around `android:extractNativeLibs` and deprecated CameraX analyzer sizing API.
