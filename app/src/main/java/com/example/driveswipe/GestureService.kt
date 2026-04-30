@@ -67,7 +67,7 @@ class GestureService : LifecycleService(), SensorEventListener {
             pinchReleaseThreshold = intent.getFloatExtra(ServiceContract.EXTRA_PINCH_RELEASE_THRESHOLD, settings.tuning.pinchReleaseThreshold),
             swipeThreshold = intent.getFloatExtra(ServiceContract.EXTRA_SWIPE_THRESHOLD, settings.tuning.swipeThreshold),
             swipeTimeoutMs = intent.getLongExtra(ServiceContract.EXTRA_SWIPE_TIMEOUT_MS, settings.tuning.swipeTimeoutMs),
-            palmHoldFrames = intent.getIntExtra(ServiceContract.EXTRA_PALM_HOLD_FRAMES, settings.tuning.palmHoldFrames),
+            alertingBurstMs = intent.getLongExtra(ServiceContract.EXTRA_ALERTING_BURST_MS, settings.tuning.alertingBurstMs),
             activeTimeoutMs = intent.getLongExtra(ServiceContract.EXTRA_ACTIVE_TIMEOUT_MS, settings.tuning.activeTimeoutMs),
             idleInferenceIntervalMs = intent.getLongExtra(
                 ServiceContract.EXTRA_IDLE_INFERENCE_INTERVAL_MS,
@@ -202,6 +202,7 @@ class GestureService : LifecycleService(), SensorEventListener {
     private fun handleEngineStateChanged(state: EngineState) {
         val message = when (state) {
             EngineState.ACTIVE -> "DriveSwipe listening..."
+            EngineState.ALERTING -> "DriveSwipe checking wake gesture..."
             EngineState.IDLE -> "DriveSwipe sleeping..."
         }
         Handler(Looper.getMainLooper()).post {

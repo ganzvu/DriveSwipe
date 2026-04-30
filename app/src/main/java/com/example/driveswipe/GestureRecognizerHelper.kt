@@ -10,6 +10,7 @@ import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.framework.image.MPImage
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.core.Delegate
+import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.gesturerecognizer.GestureRecognizer
 import com.google.mediapipe.tasks.vision.gesturerecognizer.GestureRecognizerResult
@@ -25,7 +26,8 @@ class GestureRecognizerHelper(
     private var lastInferenceTimeMs = 0L
     private var inferenceInFlight = false
     private var engineState = EngineState.IDLE
-    private var palmHoldFrames = 0
+    private var alertingStartTime = 0L
+    private var missingLandmarkFrames = 0
     private var lastActiveGestureTime = 0L
     
     // Swipe & Motion tracking
@@ -44,13 +46,13 @@ class GestureRecognizerHelper(
     private val minSwipeAgeMs = 80L
     private val horizontalDominanceRatio = 1.35f
     private val activeInferenceIntervalMs = 55L
-    private val palmScoreThreshold = 0.65f
+    private val alertingNoHandFrames = 3
 
     init {
         setupGestureRecognizer()
     }
 
-    private fun distance(p1: com.google.mediapipe.tasks.components.containers.NormalizedLandmark, p2: com.google.mediapipe.tasks.components.containers.NormalizedLandmark): Float {
+    private fun distance(p1: NormalizedLandmark, p2: NormalizedLandmark): Float {
         val dx = p1.x() - p2.x()
         val dy = p1.y() - p2.y()
         return Math.sqrt((dx * dx + dy * dy).toDouble()).toFloat()
@@ -143,23 +145,45 @@ class GestureRecognizerHelper(
     private fun transitionTo(state: EngineState, now: Long) {
         if (engineState == state) return
         engineState = state
-        palmHoldFrames = 0
+        missingLandmarkFrames = 0
+        alertingStartTime = if (state == EngineState.ALERTING) now else 0L
         if (state == EngineState.ACTIVE) {
             lastActiveGestureTime = now
+            lastInferenceTimeMs = 0L
+        } else if (state == EngineState.ALERTING) {
             lastInferenceTimeMs = 0L
         }
         gestureListener.onEngineStateChanged(state)
     }
 
-    private fun handleIdleWakeGesture(gestureName: String, score: Float, now: Long) {
-        val requiredPalmFrames = tuning.palmHoldFrames.coerceAtLeast(1)
-        if (gestureName == "Open_Palm" && score > palmScoreThreshold) {
-            palmHoldFrames = (palmHoldFrames + 1).coerceAtMost(requiredPalmFrames)
-            if (palmHoldFrames >= requiredPalmFrames) {
-                transitionTo(EngineState.ACTIVE, now)
+    private fun handleAlertingWakeGesture(
+        landmarks: List<NormalizedLandmark>,
+        gestureName: String,
+        score: Float,
+        now: Long
+    ) {
+        if (validateOpenPalmGeometry(landmarks, gestureName, score)) {
+            transitionTo(EngineState.ACTIVE, now)
+            return
+        }
+        if (now - alertingStartTime > tuning.alertingBurstMs.coerceAtLeast(activeInferenceIntervalMs)) {
+            transitionTo(EngineState.IDLE, now)
+        }
+    }
+
+    private fun handleNoLandmarks(now: Long) {
+        when (engineState) {
+            EngineState.ALERTING -> {
+                missingLandmarkFrames++
+                if (
+                    missingLandmarkFrames >= alertingNoHandFrames ||
+                    now - alertingStartTime > tuning.alertingBurstMs.coerceAtLeast(activeInferenceIntervalMs)
+                ) {
+                    transitionTo(EngineState.IDLE, now)
+                }
             }
-        } else {
-            palmHoldFrames = 0
+            EngineState.ACTIVE -> maybeSleepAfterTimeout(now)
+            EngineState.IDLE -> Unit
         }
     }
 
@@ -202,12 +226,14 @@ class GestureRecognizerHelper(
             }
 
             if (engineState == EngineState.IDLE) {
-                handleIdleWakeGesture(gestureName, score, now)
+                transitionTo(EngineState.ALERTING, now)
                 return
             }
 
-            if (gestureName != "None") {
-                lastActiveGestureTime = now
+            missingLandmarkFrames = 0
+            if (engineState == EngineState.ALERTING) {
+                handleAlertingWakeGesture(landmarks, gestureName, score, now)
+                return
             }
 
             // 1. New Volume Control (Thumb Up / Down)
@@ -364,16 +390,53 @@ class GestureRecognizerHelper(
             pinchCandidateFrames = 0
             releaseCandidateFrames = 0
             previousPinchDist2D = Float.NaN
-            maybeSleepAfterTimeout(now)
+            handleNoLandmarks(now)
         }
     }
 
     private fun isFingerCurled(
-        tip: com.google.mediapipe.tasks.components.containers.NormalizedLandmark,
-        pip: com.google.mediapipe.tasks.components.containers.NormalizedLandmark,
-        mcp: com.google.mediapipe.tasks.components.containers.NormalizedLandmark
+        tip: NormalizedLandmark,
+        pip: NormalizedLandmark,
+        mcp: NormalizedLandmark
     ): Boolean {
         return tip.y() > pip.y() && distance(tip, mcp) < distance(pip, mcp) * 1.8f
+    }
+
+    private fun validateOpenPalmGeometry(
+        landmarks: List<NormalizedLandmark>,
+        gestureName: String,
+        score: Float
+    ): Boolean {
+        if (gestureName != "Open_Palm" || score < 0.60f || landmarks.size <= 20) return false
+
+        val wrist = landmarks[0]
+        val thumbTip = landmarks[4]
+        val indexTip = landmarks[8]
+        val indexPip = landmarks[6]
+        val indexMcp = landmarks[5]
+        val middleTip = landmarks[12]
+        val middlePip = landmarks[10]
+        val middleMcp = landmarks[9]
+        val ringTip = landmarks[16]
+        val ringPip = landmarks[14]
+        val pinkyTip = landmarks[20]
+        val pinkyPip = landmarks[18]
+
+        val fingersExtended = indexTip.y() < indexPip.y() &&
+            middleTip.y() < middlePip.y() &&
+            ringTip.y() < ringPip.y() &&
+            pinkyTip.y() < pinkyPip.y()
+        val wristToMiddleAngle = Math.toDegrees(
+            Math.atan2(
+                (middleMcp.y() - wrist.y()).toDouble(),
+                (middleMcp.x() - wrist.x()).toDouble()
+            )
+        )
+        val roughlyUpright = Math.abs(Math.abs(wristToMiddleAngle) - 90.0) < 45.0
+        val palmScale = distance(wrist, middleMcp).coerceAtLeast(0.001f)
+        val thumbSplayed = distance(thumbTip, indexMcp) > palmScale * 0.55f
+
+        return fingersExtended && roughlyUpright && thumbSplayed
     }
 
     private fun returnLivestreamError(error: RuntimeException) {

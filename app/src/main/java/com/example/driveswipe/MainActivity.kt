@@ -143,7 +143,7 @@ class MainActivity : ComponentActivity() {
             putExtra(ServiceContract.EXTRA_PINCH_RELEASE_THRESHOLD, settings.tuning.pinchReleaseThreshold)
             putExtra(ServiceContract.EXTRA_SWIPE_THRESHOLD, settings.tuning.swipeThreshold)
             putExtra(ServiceContract.EXTRA_SWIPE_TIMEOUT_MS, settings.tuning.swipeTimeoutMs)
-            putExtra(ServiceContract.EXTRA_PALM_HOLD_FRAMES, settings.tuning.palmHoldFrames)
+            putExtra(ServiceContract.EXTRA_ALERTING_BURST_MS, settings.tuning.alertingBurstMs)
             putExtra(ServiceContract.EXTRA_ACTIVE_TIMEOUT_MS, settings.tuning.activeTimeoutMs)
             putExtra(ServiceContract.EXTRA_IDLE_INFERENCE_INTERVAL_MS, settings.tuning.idleInferenceIntervalMs)
             putExtra(ServiceContract.EXTRA_MAP_PINCH_RIGHT, settings.mappings.pinchDragRight.name)

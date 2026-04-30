@@ -17,6 +17,7 @@ enum class GesturePreset {
 
 enum class EngineState {
     IDLE,
+    ALERTING,
     ACTIVE
 }
 
@@ -35,7 +36,7 @@ data class GestureTuning(
     val pinchReleaseThreshold: Float = 0.15f,
     val swipeThreshold: Float = 0.15f,
     val swipeTimeoutMs: Long = 1500L,
-    val palmHoldFrames: Int = 5,
+    val alertingBurstMs: Long = 1500L,
     val activeTimeoutMs: Long = 8000L,
     val idleInferenceIntervalMs: Long = 350L
 )

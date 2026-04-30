@@ -137,7 +137,8 @@ private fun HomeScreen(
             text = if (uiState.isServiceRunning) {
                 when (uiState.engineState) {
                     EngineState.ACTIVE -> "Gesture control is listening."
-                    EngineState.IDLE -> "Gesture control is sleeping. Hold an open palm to wake it."
+                    EngineState.ALERTING -> "Hand detected. Checking for wake gesture..."
+                    EngineState.IDLE -> "Gesture control is sleeping. Show an open palm to wake it."
                 }
             } else {
                 "Gesture control is stopped."
@@ -323,10 +324,10 @@ private fun GestureSettingsScreen(
                         onValueChange = { onTuningChanged(tuning.copy(swipeThreshold = it)) }
                     )
                     TuningSlider(
-                        title = "Wake palm hold (${tuning.palmHoldFrames} frames)",
-                        value = tuning.palmHoldFrames.toFloat(),
-                        range = 2f..10f,
-                        onValueChange = { onTuningChanged(tuning.copy(palmHoldFrames = it.toInt())) }
+                        title = "Alerting burst (${tuning.alertingBurstMs}ms)",
+                        value = tuning.alertingBurstMs.toFloat(),
+                        range = 500f..2500f,
+                        onValueChange = { onTuningChanged(tuning.copy(alertingBurstMs = it.toLong())) }
                     )
                     TuningSlider(
                         title = "Active timeout (${tuning.activeTimeoutMs}ms)",
