@@ -82,9 +82,10 @@ class MainUiStateTest {
     // ── Default state ────────────────────────────────────────────────────────
 
     @Test
-    fun defaultStateHasNoPermissionsAndServiceNotRunning() {
+    fun defaultStateHasNotificationsPermissionButCameraAndListenerMissingAndServiceNotRunning() {
         val state = MainUiState()
         assertFalse(state.hasCameraPermission)
+        assertTrue(state.hasNotificationsPermission)
         assertFalse(state.isServiceRunning)
         assertFalse(state.hasNotificationListenerAccess)
         assertFalse(state.isDriveReady)
