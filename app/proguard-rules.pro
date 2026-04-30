@@ -86,3 +86,17 @@
 -dontwarn sun.misc.**
 -dontwarn java.lang.invoke.**
 -dontwarn org.conscrypt.**
+
+# ── MediaPipe / AutoValue annotation-processor stubs ─────────────────────────
+# com.google.auto.value ships its annotation processor code inside the runtime
+# JAR; these javax.lang.model / javax.annotation.processing classes only exist
+# at compile time and are never called at runtime, so it is safe to suppress.
+-dontwarn javax.annotation.processing.AbstractProcessor
+-dontwarn javax.annotation.processing.SupportedAnnotationTypes
+-dontwarn javax.lang.model.SourceVersion
+-dontwarn javax.lang.model.element.Element
+-dontwarn javax.lang.model.element.ElementKind
+-dontwarn javax.lang.model.element.Modifier
+-dontwarn javax.lang.model.type.TypeMirror
+-dontwarn javax.lang.model.type.TypeVisitor
+-dontwarn javax.lang.model.util.SimpleTypeVisitor8
