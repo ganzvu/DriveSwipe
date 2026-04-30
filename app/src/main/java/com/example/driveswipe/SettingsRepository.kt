@@ -28,6 +28,9 @@ class SettingsRepository(private val context: Context) {
         val pinchReleaseThreshold = floatPreferencesKey("pinch_release_threshold")
         val swipeThreshold = floatPreferencesKey("swipe_threshold")
         val swipeTimeoutMs = longPreferencesKey("swipe_timeout_ms")
+        val alertingBurstMs = longPreferencesKey("alerting_burst_ms")
+        val activeTimeoutMs = longPreferencesKey("active_timeout_ms")
+        val idleInferenceIntervalMs = longPreferencesKey("idle_inference_interval_ms")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { prefs ->
@@ -49,7 +52,10 @@ class SettingsRepository(private val context: Context) {
                 pinchThreshold = prefs[Keys.pinchThreshold] ?: 0.08f,
                 pinchReleaseThreshold = prefs[Keys.pinchReleaseThreshold] ?: 0.15f,
                 swipeThreshold = prefs[Keys.swipeThreshold] ?: 0.15f,
-                swipeTimeoutMs = prefs[Keys.swipeTimeoutMs] ?: 1500L
+                swipeTimeoutMs = prefs[Keys.swipeTimeoutMs] ?: 1500L,
+                alertingBurstMs = prefs[Keys.alertingBurstMs] ?: 1500L,
+                activeTimeoutMs = prefs[Keys.activeTimeoutMs] ?: 8000L,
+                idleInferenceIntervalMs = prefs[Keys.idleInferenceIntervalMs] ?: 350L
             )
         )
     }
@@ -82,6 +88,9 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.pinchReleaseThreshold] = tuning.pinchReleaseThreshold
             prefs[Keys.swipeThreshold] = tuning.swipeThreshold
             prefs[Keys.swipeTimeoutMs] = tuning.swipeTimeoutMs
+            prefs[Keys.alertingBurstMs] = tuning.alertingBurstMs
+            prefs[Keys.activeTimeoutMs] = tuning.activeTimeoutMs
+            prefs[Keys.idleInferenceIntervalMs] = tuning.idleInferenceIntervalMs
         }
     }
 

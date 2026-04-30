@@ -24,6 +24,7 @@ private fun DriveSwipeHomePreview() {
             onNightModeChanged = {},
             onRetryPermissions = {},
             onOpenNotificationSettings = {},
+            onOpenOverlaySettings = {},
             onPresetSelected = {},
             onMappingChanged = { _, _ -> },
             onTuningChanged = {},

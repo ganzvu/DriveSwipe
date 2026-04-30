@@ -53,6 +53,7 @@ fun DriveSwipeApp(
     onNightModeChanged: (Boolean) -> Unit,
     onRetryPermissions: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
+    onOpenOverlaySettings: () -> Unit,
     onPresetSelected: (GesturePreset) -> Unit,
     onMappingChanged: (String, DriveAction) -> Unit,
     onTuningChanged: (GestureTuning) -> Unit,
@@ -74,6 +75,7 @@ fun DriveSwipeApp(
                     uiState = uiState,
                     onRetryPermissions = onRetryPermissions,
                     onOpenNotificationSettings = onOpenNotificationSettings,
+                    onOpenOverlaySettings = onOpenOverlaySettings,
                     onContinue = { navController.navigate(Route.Home) }
                 )
             }
@@ -134,7 +136,15 @@ private fun HomeScreen(
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = if (uiState.isServiceRunning) "Gesture control is active." else "Gesture control is stopped."
+            text = if (uiState.isServiceRunning) {
+                when (uiState.engineState) {
+                    EngineState.ACTIVE -> "Gesture control is listening."
+                    EngineState.ALERTING -> "Hand detected. Checking for wake gesture..."
+                    EngineState.IDLE -> "Gesture control is sleeping. Show an open palm to wake it."
+                }
+            } else {
+                "Gesture control is stopped."
+            }
         )
 
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -177,6 +187,7 @@ private fun HomeScreen(
         val lastEvent = uiState.gestureHistory.firstOrNull()
         Text("Last recognized: ${lastEvent?.gestureName ?: "None"}")
         Text("Last action: ${lastEvent?.action?.name ?: "None"}")
+        Text("Engine state: ${if (uiState.isServiceRunning) uiState.engineState.name else "STOPPED"}")
         Text("Cooldown: ${uiState.settings.tuning.actionCooldownMs}ms")
 
         Button(onClick = { onToggleService(false) }, enabled = uiState.isServiceRunning) {
@@ -196,6 +207,7 @@ private fun SetupWizardScreen(
     uiState: MainUiState,
     onRetryPermissions: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
+    onOpenOverlaySettings: () -> Unit,
     onContinue: () -> Unit
 ) {
     val complete = uiState.isDriveReady
@@ -210,9 +222,13 @@ private fun SetupWizardScreen(
         PermissionRow("Camera access", uiState.hasCameraPermission)
         PermissionRow("Notifications permission", uiState.hasNotificationsPermission)
         PermissionRow("Notification listener access", uiState.hasNotificationListenerAccess)
+        PermissionRow("Draw over other apps (status dot)", uiState.hasOverlayPermission)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = onRetryPermissions) { Text("Retry checks") }
             TextButton(onClick = onOpenNotificationSettings) { Text("Open listener settings") }
+        }
+        if (!uiState.hasOverlayPermission) {
+            TextButton(onClick = onOpenOverlaySettings) { Text("Enable overlay permission") }
         }
         Button(onClick = onContinue, enabled = complete) { Text("Continue to Home") }
     }
@@ -314,6 +330,18 @@ private fun GestureSettingsScreen(
                         range = 0.10f..0.25f,
                         onValueChange = { onTuningChanged(tuning.copy(swipeThreshold = it)) }
                     )
+                    TuningSlider(
+                        title = "Alerting burst (${tuning.alertingBurstMs}ms)",
+                        value = tuning.alertingBurstMs.toFloat(),
+                        range = 500f..2500f,
+                        onValueChange = { onTuningChanged(tuning.copy(alertingBurstMs = it.toLong())) }
+                    )
+                    TuningSlider(
+                        title = "Active timeout (${tuning.activeTimeoutMs}ms)",
+                        value = tuning.activeTimeoutMs.toFloat(),
+                        range = 3000f..15000f,
+                        onValueChange = { onTuningChanged(tuning.copy(activeTimeoutMs = it.toLong())) }
+                    )
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(
                             modifier = Modifier.padding(12.dp),
@@ -341,6 +369,14 @@ private fun GestureSettingsScreen(
                                 range = 500f..2500f,
                                 onValueChange = {
                                     onTuningChanged(tuning.copy(swipeTimeoutMs = it.toLong()))
+                                }
+                            )
+                            TuningSlider(
+                                title = "Idle polling (${tuning.idleInferenceIntervalMs}ms)",
+                                value = tuning.idleInferenceIntervalMs.toFloat(),
+                                range = 250f..800f,
+                                onValueChange = {
+                                    onTuningChanged(tuning.copy(idleInferenceIntervalMs = it.toLong()))
                                 }
                             )
                         }
