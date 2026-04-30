@@ -60,18 +60,38 @@ Output:
 
 ## Release Signing Setup
 
-This project reads local signing config from `keystore.properties`.
+### Local builds
 
-1. Copy template:
-   - `keystore.properties.example` -> `keystore.properties`
-2. Fill your real values:
-   - `storeFile`
-   - `storePassword`
-   - `keyAlias`
-   - `keyPassword`
-3. Build release:
+This project reads signing config from `keystore.properties` (gitignored).
+
+1. Copy the template:
+   - `keystore.properties.example` → `keystore.properties`
+2. Fill in your real values (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`)
+3. Optionally use the helper script to create a new keystore:
+   - `.\scripts\generate-keystore.ps1`
+4. Build the signed release APK:
    - `./gradlew.bat :app:assembleRelease`
-   - 
+
+> **Note:** A release build without signing credentials will now fail with a clear
+> error rather than silently producing an unsigned (uninstallable) APK.
+
+### CI / GitHub Actions
+
+Releases are signed automatically when a `v*` tag is pushed.  The workflow
+(`.github/workflows/release.yml`) reads four repository secrets:
+
+| Secret | Description |
+|---|---|
+| `KEYSTORE_BASE64` | Base-64 encoded `.jks` keystore file — Linux: `base64 -w 0 release-keystore.jks`, macOS: `base64 -i release-keystore.jks` |
+| `KEYSTORE_STORE_PASSWORD` | Keystore store password |
+| `KEYSTORE_KEY_ALIAS` | Key alias inside the keystore |
+| `KEYSTORE_KEY_PASSWORD` | Key password |
+
+Set these under **Settings → Secrets and variables → Actions** in the repository.
+The signed APK is automatically attached to the GitHub Release that is created for
+the tag.
+
+
 ## Repository Layout
 
 - `app/src/main/java/com/example/driveswipe/MainActivity.kt` - app host + permission/service orchestration

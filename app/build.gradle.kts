@@ -12,6 +12,20 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
+// Resolve signing values: keystore.properties takes priority, then environment variables.
+fun signingValue(propKey: String, envKey: String): String? =
+    (keystoreProperties[propKey] as? String)?.takeIf { it.isNotBlank() }
+        ?: System.getenv(envKey)?.takeIf { it.isNotBlank() }
+
+val releaseStoreFile    = signingValue("storeFile",    "KEYSTORE_FILE")
+val releaseStorePass    = signingValue("storePassword", "KEYSTORE_STORE_PASSWORD")
+val releaseKeyAlias     = signingValue("keyAlias",      "KEYSTORE_KEY_ALIAS")
+val releaseKeyPassword  = signingValue("keyPassword",   "KEYSTORE_KEY_PASSWORD")
+val hasSigningConfig    = releaseStoreFile != null &&
+                          releaseStorePass != null &&
+                          releaseKeyAlias  != null &&
+                          releaseKeyPassword != null
+
 android {
     namespace = "com.example.driveswipe"
     compileSdk = 34
@@ -31,11 +45,11 @@ android {
 
     signingConfigs {
         create("release") {
-            if (keystorePropertiesFile.exists()) {
-                storeFile = rootProject.file(keystoreProperties["storeFile"] as String)
-                storePassword = keystoreProperties["storePassword"] as String
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
+            if (hasSigningConfig) {
+                storeFile = rootProject.file(requireNotNull(releaseStoreFile))
+                storePassword = requireNotNull(releaseStorePass)
+                keyAlias = requireNotNull(releaseKeyAlias)
+                keyPassword = requireNotNull(releaseKeyPassword)
             }
         }
     }
@@ -44,8 +58,18 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            if (keystorePropertiesFile.exists()) {
+            if (hasSigningConfig) {
                 signingConfig = signingConfigs.getByName("release")
+            } else {
+                // No signing credentials found — the resulting APK will be unsigned
+                // and cannot be installed on a device.  Fail fast so the problem is
+                // obvious rather than silently publishing an invalid APK.
+                throw GradleException(
+                    "Release build requires signing credentials. " +
+                    "Provide keystore.properties or set the KEYSTORE_FILE / " +
+                    "KEYSTORE_STORE_PASSWORD / KEYSTORE_KEY_ALIAS / KEYSTORE_KEY_PASSWORD " +
+                    "environment variables."
+                )
             }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
