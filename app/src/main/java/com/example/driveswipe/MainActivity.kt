@@ -83,6 +83,7 @@ class MainActivity : ComponentActivity() {
                         },
                         onRetryPermissions = { checkPermissions() },
                         onOpenNotificationSettings = { openNotificationListenerSettings() },
+                        onOpenOverlaySettings = { openOverlaySettings() },
                         onPresetSelected = { viewModel.setPreset(it) },
                         onMappingChanged = { gestureKey, action -> viewModel.setMapping(gestureKey, action) },
                         onTuningChanged = { viewModel.updateTuning(it) },
@@ -130,7 +131,16 @@ class MainActivity : ComponentActivity() {
             true
         }
         val hasListener = hasNotificationListenerPermission()
-        viewModel.updatePermissionStatus(hasCamera, hasNotifications, hasListener)
+        val hasOverlay = Settings.canDrawOverlays(this)
+        viewModel.updatePermissionStatus(hasCamera, hasNotifications, hasListener, hasOverlay)
+    }
+
+    fun openOverlaySettings() {
+        val intent = Intent(
+            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            android.net.Uri.parse("package:$packageName")
+        )
+        startActivity(intent)
     }
 
     private fun startGestureService() {

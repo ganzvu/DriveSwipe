@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.PixelFormat
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -14,9 +15,13 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.provider.Settings
 import android.util.Log
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.KeyEvent
 import android.util.Size
+import android.view.WindowManager
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -40,6 +45,9 @@ class GestureService : LifecycleService(), SensorEventListener {
     private var proximityWaveCount = 0
     private var settings = AppSettings()
 
+    private var overlayView: StatusOverlayView? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
+
     override fun onCreate() {
         super.onCreate()
         cameraExecutor = Executors.newSingleThreadExecutor()
@@ -48,6 +56,52 @@ class GestureService : LifecycleService(), SensorEventListener {
         proximitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)
 
         startForegroundService()
+        mainHandler.post { attachOverlay() }
+    }
+
+    private fun attachOverlay() {
+        if (!Settings.canDrawOverlays(this)) return
+        if (overlayView != null) return
+
+        val wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val sizePx = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            StatusOverlayView.DOT_SIZE_DP.toFloat(),
+            resources.displayMetrics
+        ).toInt()
+        val marginPx = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP, 12f, resources.displayMetrics
+        ).toInt()
+
+        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+
+        val params = WindowManager.LayoutParams(
+            sizePx, sizePx, type,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.END
+            x = marginPx
+            y = marginPx
+        }
+
+        val view = StatusOverlayView(this).also { overlayView = it }
+        view.setState(EngineState.IDLE)
+        wm.addView(view, params)
+    }
+
+    private fun detachOverlay() {
+        val view = overlayView ?: return
+        overlayView = null
+        val wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        runCatching { wm.removeView(view) }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -200,14 +254,7 @@ class GestureService : LifecycleService(), SensorEventListener {
     }
 
     private fun handleEngineStateChanged(state: EngineState) {
-        val message = when (state) {
-            EngineState.ACTIVE -> "DriveSwipe listening..."
-            EngineState.ALERTING -> "DriveSwipe checking wake gesture..."
-            EngineState.IDLE -> "DriveSwipe sleeping..."
-        }
-        Handler(Looper.getMainLooper()).post {
-            android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show()
-        }
+        mainHandler.post { overlayView?.setState(state) }
         publishEngineStateEvent(state)
     }
 
@@ -289,6 +336,7 @@ class GestureService : LifecycleService(), SensorEventListener {
         cameraExecutor.shutdown()
         sensorManager.unregisterListener(this)
         gestureRecognizerHelper?.clear()
+        mainHandler.post { detachOverlay() }
     }
 
     private fun parseAction(actionName: String?, fallback: DriveAction): DriveAction {
