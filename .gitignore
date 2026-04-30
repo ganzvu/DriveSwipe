@@ -10,3 +10,7 @@ debug.txt
 keystore.properties
 *.jks
 *.keystore
+
+# Raw logo source assets — baked into mipmap dirs, not tracked directly
+1777481423106.png
+/assets/*.png
