@@ -60,7 +60,7 @@ Output:
 
 ## Release Signing Setup
 
-This project reads local signing config from `keystore.properties` (git-ignored).
+This project reads local signing config from `keystore.properties`.
 
 1. Copy template:
    - `keystore.properties.example` -> `keystore.properties`
@@ -71,9 +71,7 @@ This project reads local signing config from `keystore.properties` (git-ignored)
    - `keyPassword`
 3. Build release:
    - `./gradlew.bat :app:assembleRelease`
-
-Do not commit `keystore.properties` or `.jks` files.
-
+   - 
 ## Repository Layout
 
 - `app/src/main/java/com/example/driveswipe/MainActivity.kt` - app host + permission/service orchestration
