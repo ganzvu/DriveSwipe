@@ -134,7 +134,14 @@ private fun HomeScreen(
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = if (uiState.isServiceRunning) "Gesture control is active." else "Gesture control is stopped."
+            text = if (uiState.isServiceRunning) {
+                when (uiState.engineState) {
+                    EngineState.ACTIVE -> "Gesture control is listening."
+                    EngineState.IDLE -> "Gesture control is sleeping. Hold an open palm to wake it."
+                }
+            } else {
+                "Gesture control is stopped."
+            }
         )
 
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -177,6 +184,7 @@ private fun HomeScreen(
         val lastEvent = uiState.gestureHistory.firstOrNull()
         Text("Last recognized: ${lastEvent?.gestureName ?: "None"}")
         Text("Last action: ${lastEvent?.action?.name ?: "None"}")
+        Text("Engine state: ${if (uiState.isServiceRunning) uiState.engineState.name else "STOPPED"}")
         Text("Cooldown: ${uiState.settings.tuning.actionCooldownMs}ms")
 
         Button(onClick = { onToggleService(false) }, enabled = uiState.isServiceRunning) {
@@ -314,6 +322,18 @@ private fun GestureSettingsScreen(
                         range = 0.10f..0.25f,
                         onValueChange = { onTuningChanged(tuning.copy(swipeThreshold = it)) }
                     )
+                    TuningSlider(
+                        title = "Wake palm hold (${tuning.palmHoldFrames} frames)",
+                        value = tuning.palmHoldFrames.toFloat(),
+                        range = 2f..10f,
+                        onValueChange = { onTuningChanged(tuning.copy(palmHoldFrames = it.toInt())) }
+                    )
+                    TuningSlider(
+                        title = "Active timeout (${tuning.activeTimeoutMs}ms)",
+                        value = tuning.activeTimeoutMs.toFloat(),
+                        range = 3000f..15000f,
+                        onValueChange = { onTuningChanged(tuning.copy(activeTimeoutMs = it.toLong())) }
+                    )
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(
                             modifier = Modifier.padding(12.dp),
@@ -341,6 +361,14 @@ private fun GestureSettingsScreen(
                                 range = 500f..2500f,
                                 onValueChange = {
                                     onTuningChanged(tuning.copy(swipeTimeoutMs = it.toLong()))
+                                }
+                            )
+                            TuningSlider(
+                                title = "Idle polling (${tuning.idleInferenceIntervalMs}ms)",
+                                value = tuning.idleInferenceIntervalMs.toFloat(),
+                                range = 250f..800f,
+                                onValueChange = {
+                                    onTuningChanged(tuning.copy(idleInferenceIntervalMs = it.toLong()))
                                 }
                             )
                         }

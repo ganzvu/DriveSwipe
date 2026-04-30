@@ -15,6 +15,11 @@ enum class GesturePreset {
     CUSTOM
 }
 
+enum class EngineState {
+    IDLE,
+    ACTIVE
+}
+
 data class GestureMappings(
     val pinchDragRight: DriveAction = DriveAction.NEXT_TRACK,
     val pinchDragLeft: DriveAction = DriveAction.PREVIOUS_TRACK,
@@ -29,7 +34,10 @@ data class GestureTuning(
     val pinchThreshold: Float = 0.08f,
     val pinchReleaseThreshold: Float = 0.15f,
     val swipeThreshold: Float = 0.15f,
-    val swipeTimeoutMs: Long = 1500L
+    val swipeTimeoutMs: Long = 1500L,
+    val palmHoldFrames: Int = 5,
+    val activeTimeoutMs: Long = 8000L,
+    val idleInferenceIntervalMs: Long = 350L
 )
 
 data class AppSettings(

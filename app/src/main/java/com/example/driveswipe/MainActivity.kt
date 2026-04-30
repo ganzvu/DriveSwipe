@@ -43,11 +43,19 @@ class MainActivity : ComponentActivity() {
 
     private val serviceEventReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action != ServiceContract.ACTION_GESTURE_EVENT) return
-            val gesture = intent.getStringExtra(ServiceContract.EXTRA_EVENT_GESTURE) ?: return
-            val actionName = intent.getStringExtra(ServiceContract.EXTRA_EVENT_ACTION) ?: return
-            val action = runCatching { DriveAction.valueOf(actionName) }.getOrDefault(DriveAction.NONE)
-            viewModel.addGestureEvent(gesture, action)
+            when (intent?.action) {
+                ServiceContract.ACTION_GESTURE_EVENT -> {
+                    val gesture = intent.getStringExtra(ServiceContract.EXTRA_EVENT_GESTURE) ?: return
+                    val actionName = intent.getStringExtra(ServiceContract.EXTRA_EVENT_ACTION) ?: return
+                    val action = runCatching { DriveAction.valueOf(actionName) }.getOrDefault(DriveAction.NONE)
+                    viewModel.addGestureEvent(gesture, action)
+                }
+                ServiceContract.ACTION_ENGINE_STATE_EVENT -> {
+                    val stateName = intent.getStringExtra(ServiceContract.EXTRA_ENGINE_STATE) ?: return
+                    val state = runCatching { EngineState.valueOf(stateName) }.getOrDefault(EngineState.IDLE)
+                    viewModel.setEngineState(state)
+                }
+            }
         }
     }
 
@@ -135,6 +143,9 @@ class MainActivity : ComponentActivity() {
             putExtra(ServiceContract.EXTRA_PINCH_RELEASE_THRESHOLD, settings.tuning.pinchReleaseThreshold)
             putExtra(ServiceContract.EXTRA_SWIPE_THRESHOLD, settings.tuning.swipeThreshold)
             putExtra(ServiceContract.EXTRA_SWIPE_TIMEOUT_MS, settings.tuning.swipeTimeoutMs)
+            putExtra(ServiceContract.EXTRA_PALM_HOLD_FRAMES, settings.tuning.palmHoldFrames)
+            putExtra(ServiceContract.EXTRA_ACTIVE_TIMEOUT_MS, settings.tuning.activeTimeoutMs)
+            putExtra(ServiceContract.EXTRA_IDLE_INFERENCE_INTERVAL_MS, settings.tuning.idleInferenceIntervalMs)
             putExtra(ServiceContract.EXTRA_MAP_PINCH_RIGHT, settings.mappings.pinchDragRight.name)
             putExtra(ServiceContract.EXTRA_MAP_PINCH_LEFT, settings.mappings.pinchDragLeft.name)
             putExtra(ServiceContract.EXTRA_MAP_TWO_FINGER, settings.mappings.twoFingerPoint.name)
@@ -162,7 +173,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        val filter = IntentFilter(ServiceContract.ACTION_GESTURE_EVENT)
+        val filter = IntentFilter().apply {
+            addAction(ServiceContract.ACTION_GESTURE_EVENT)
+            addAction(ServiceContract.ACTION_ENGINE_STATE_EVENT)
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(serviceEventReceiver, filter, RECEIVER_NOT_EXPORTED)
         } else {

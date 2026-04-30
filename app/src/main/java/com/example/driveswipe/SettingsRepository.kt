@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -28,6 +29,9 @@ class SettingsRepository(private val context: Context) {
         val pinchReleaseThreshold = floatPreferencesKey("pinch_release_threshold")
         val swipeThreshold = floatPreferencesKey("swipe_threshold")
         val swipeTimeoutMs = longPreferencesKey("swipe_timeout_ms")
+        val palmHoldFrames = intPreferencesKey("palm_hold_frames")
+        val activeTimeoutMs = longPreferencesKey("active_timeout_ms")
+        val idleInferenceIntervalMs = longPreferencesKey("idle_inference_interval_ms")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { prefs ->
@@ -49,7 +53,10 @@ class SettingsRepository(private val context: Context) {
                 pinchThreshold = prefs[Keys.pinchThreshold] ?: 0.08f,
                 pinchReleaseThreshold = prefs[Keys.pinchReleaseThreshold] ?: 0.15f,
                 swipeThreshold = prefs[Keys.swipeThreshold] ?: 0.15f,
-                swipeTimeoutMs = prefs[Keys.swipeTimeoutMs] ?: 1500L
+                swipeTimeoutMs = prefs[Keys.swipeTimeoutMs] ?: 1500L,
+                palmHoldFrames = prefs[Keys.palmHoldFrames] ?: 5,
+                activeTimeoutMs = prefs[Keys.activeTimeoutMs] ?: 8000L,
+                idleInferenceIntervalMs = prefs[Keys.idleInferenceIntervalMs] ?: 350L
             )
         )
     }
@@ -82,6 +89,9 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.pinchReleaseThreshold] = tuning.pinchReleaseThreshold
             prefs[Keys.swipeThreshold] = tuning.swipeThreshold
             prefs[Keys.swipeTimeoutMs] = tuning.swipeTimeoutMs
+            prefs[Keys.palmHoldFrames] = tuning.palmHoldFrames
+            prefs[Keys.activeTimeoutMs] = tuning.activeTimeoutMs
+            prefs[Keys.idleInferenceIntervalMs] = tuning.idleInferenceIntervalMs
         }
     }
 

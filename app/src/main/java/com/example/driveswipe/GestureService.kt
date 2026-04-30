@@ -66,7 +66,13 @@ class GestureService : LifecycleService(), SensorEventListener {
             pinchThreshold = intent.getFloatExtra(ServiceContract.EXTRA_PINCH_THRESHOLD, settings.tuning.pinchThreshold),
             pinchReleaseThreshold = intent.getFloatExtra(ServiceContract.EXTRA_PINCH_RELEASE_THRESHOLD, settings.tuning.pinchReleaseThreshold),
             swipeThreshold = intent.getFloatExtra(ServiceContract.EXTRA_SWIPE_THRESHOLD, settings.tuning.swipeThreshold),
-            swipeTimeoutMs = intent.getLongExtra(ServiceContract.EXTRA_SWIPE_TIMEOUT_MS, settings.tuning.swipeTimeoutMs)
+            swipeTimeoutMs = intent.getLongExtra(ServiceContract.EXTRA_SWIPE_TIMEOUT_MS, settings.tuning.swipeTimeoutMs),
+            palmHoldFrames = intent.getIntExtra(ServiceContract.EXTRA_PALM_HOLD_FRAMES, settings.tuning.palmHoldFrames),
+            activeTimeoutMs = intent.getLongExtra(ServiceContract.EXTRA_ACTIVE_TIMEOUT_MS, settings.tuning.activeTimeoutMs),
+            idleInferenceIntervalMs = intent.getLongExtra(
+                ServiceContract.EXTRA_IDLE_INFERENCE_INTERVAL_MS,
+                settings.tuning.idleInferenceIntervalMs
+            )
         )
 
         settings = settings.copy(
@@ -137,6 +143,10 @@ class GestureService : LifecycleService(), SensorEventListener {
                                 override fun onGestureRecognized(gestureName: String) {
                                     handleGesture(gestureName)
                                 }
+
+                                override fun onEngineStateChanged(state: EngineState) {
+                                    handleEngineStateChanged(state)
+                                }
                             },
                             tuning = settings.tuning
                         ).also { created ->
@@ -189,6 +199,17 @@ class GestureService : LifecycleService(), SensorEventListener {
         publishGestureEvent(gestureName, action)
     }
 
+    private fun handleEngineStateChanged(state: EngineState) {
+        val message = when (state) {
+            EngineState.ACTIVE -> "DriveSwipe listening..."
+            EngineState.IDLE -> "DriveSwipe sleeping..."
+        }
+        Handler(Looper.getMainLooper()).post {
+            android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show()
+        }
+        publishEngineStateEvent(state)
+    }
+
     private fun resolveAction(gestureName: String): DriveAction {
         return when (gestureName) {
             "Pinch_Drag_Right" -> settings.mappings.pinchDragRight
@@ -205,6 +226,13 @@ class GestureService : LifecycleService(), SensorEventListener {
             setPackage(packageName)
             putExtra(ServiceContract.EXTRA_EVENT_GESTURE, gestureName)
             putExtra(ServiceContract.EXTRA_EVENT_ACTION, action.name)
+        })
+    }
+
+    private fun publishEngineStateEvent(state: EngineState) {
+        sendBroadcast(Intent(ServiceContract.ACTION_ENGINE_STATE_EVENT).apply {
+            setPackage(packageName)
+            putExtra(ServiceContract.EXTRA_ENGINE_STATE, state.name)
         })
     }
 

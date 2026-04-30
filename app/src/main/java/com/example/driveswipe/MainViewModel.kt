@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 data class MainUiState(
     val settings: AppSettings = AppSettings(),
     val isServiceRunning: Boolean = false,
+    val engineState: EngineState = EngineState.IDLE,
     val hasCameraPermission: Boolean = false,
     val hasNotificationsPermission: Boolean = true,
     val hasNotificationListenerAccess: Boolean = false,
@@ -34,7 +35,16 @@ class MainViewModel(private val settingsRepository: SettingsRepository) : ViewMo
     }
 
     fun setServiceRunning(running: Boolean) {
-        _uiState.update { it.copy(isServiceRunning = running) }
+        _uiState.update {
+            it.copy(
+                isServiceRunning = running,
+                engineState = if (running) it.engineState else EngineState.IDLE
+            )
+        }
+    }
+
+    fun setEngineState(state: EngineState) {
+        _uiState.update { it.copy(engineState = state) }
     }
 
     fun updatePermissionStatus(

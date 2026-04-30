@@ -18,13 +18,15 @@ class GestureRecognizerHelper(
     val context: Context,
     val gestureListener: GestureListener,
     private var tuning: GestureTuning = GestureTuning(),
-    private val preferredDelegate: Delegate = Delegate.GPU,
-    private val minInferenceIntervalMs: Long = 55L
+    private val preferredDelegate: Delegate = Delegate.GPU
 ) {
     private var gestureRecognizer: GestureRecognizer? = null
     private var modelBuffer: java.nio.ByteBuffer? = null
     private var lastInferenceTimeMs = 0L
     private var inferenceInFlight = false
+    private var engineState = EngineState.IDLE
+    private var palmHoldFrames = 0
+    private var lastActiveGestureTime = 0L
     
     // Swipe & Motion tracking
     private var startX = -1f
@@ -37,10 +39,12 @@ class GestureRecognizerHelper(
     private var releaseCandidateFrames = 0
     private var previousPinchDist2D = Float.NaN
 
-    private val pinchConfirmFrames = 3
+    private val pinchConfirmFrames = 2
     private val pinchReleaseFrames = 2
-    private val minSwipeAgeMs = 120L
+    private val minSwipeAgeMs = 80L
     private val horizontalDominanceRatio = 1.35f
+    private val activeInferenceIntervalMs = 55L
+    private val palmScoreThreshold = 0.65f
 
     init {
         setupGestureRecognizer()
@@ -99,7 +103,12 @@ class GestureRecognizerHelper(
 
     fun recognizeImage(imageProxy: ImageProxy) {
         val frameTime = SystemClock.uptimeMillis()
-        if (inferenceInFlight || frameTime - lastInferenceTimeMs < minInferenceIntervalMs) {
+        val inferenceIntervalMs = if (engineState == EngineState.IDLE) {
+            tuning.idleInferenceIntervalMs.coerceAtLeast(activeInferenceIntervalMs)
+        } else {
+            activeInferenceIntervalMs
+        }
+        if (inferenceInFlight || frameTime - lastInferenceTimeMs < inferenceIntervalMs) {
             imageProxy.close()
             return
         }
@@ -131,15 +140,59 @@ class GestureRecognizerHelper(
         tuning = newTuning
     }
 
+    private fun transitionTo(state: EngineState, now: Long) {
+        if (engineState == state) return
+        engineState = state
+        palmHoldFrames = 0
+        if (state == EngineState.ACTIVE) {
+            lastActiveGestureTime = now
+            lastInferenceTimeMs = 0L
+        }
+        gestureListener.onEngineStateChanged(state)
+    }
+
+    private fun handleIdleWakeGesture(gestureName: String, score: Float, now: Long) {
+        val requiredPalmFrames = tuning.palmHoldFrames.coerceAtLeast(1)
+        if (gestureName == "Open_Palm" && score > palmScoreThreshold) {
+            palmHoldFrames = (palmHoldFrames + 1).coerceAtMost(requiredPalmFrames)
+            if (palmHoldFrames >= requiredPalmFrames) {
+                transitionTo(EngineState.ACTIVE, now)
+            }
+        } else {
+            palmHoldFrames = 0
+        }
+    }
+
+    private fun emitGesture(gestureName: String, now: Long) {
+        lastActiveGestureTime = now
+        gestureListener.onGestureRecognized(gestureName)
+    }
+
+    private fun maybeSleepAfterTimeout(now: Long) {
+        if (engineState == EngineState.ACTIVE && now - lastActiveGestureTime > tuning.activeTimeoutMs.coerceAtLeast(1000L)) {
+            transitionTo(EngineState.IDLE, now)
+        }
+    }
+
+    @Suppress("UNUSED_PARAMETER")
     private fun returnLivestreamResult(result: GestureRecognizerResult, mpImage: MPImage) {
         inferenceInFlight = false
         val now = SystemClock.elapsedRealtime()
 
         if (result.landmarks().isNotEmpty()) {
-            val thumbTip = result.landmarks()[0][4]
-            val thumbMCP = result.landmarks()[0][2] // Base joint of thumb
-            val indexTip = result.landmarks()[0][8]
-            val wrist = result.landmarks()[0][0] // Used as the hyper-stable anchor
+            val landmarks = result.landmarks()[0]
+            val wrist = landmarks[0] // Used as the hyper-stable anchor
+            val thumbTip = landmarks[4]
+            val thumbMCP = landmarks[2] // Base joint of thumb
+            val indexTip = landmarks[8]
+            val indexPip = landmarks[6]
+            val indexMcp = landmarks[5]
+            val middleTip = landmarks[12]
+            val middlePip = landmarks[10]
+            val middleMcp = landmarks[9]
+            val ringTip = landmarks[16]
+            val ringPip = landmarks[14]
+            val ringMcp = landmarks[13]
             
             var gestureName = "None"
             var score = 0f
@@ -148,18 +201,44 @@ class GestureRecognizerHelper(
                 score = result.gestures()[0][0].score()
             }
 
+            if (engineState == EngineState.IDLE) {
+                handleIdleWakeGesture(gestureName, score, now)
+                return
+            }
+
+            if (gestureName != "None") {
+                lastActiveGestureTime = now
+            }
+
             // 1. New Volume Control (Thumb Up / Down)
             // STRICT VERIFICATION: We manually check that the thumb tip is physically pointing UP or DOWN 
             // relative to its base knuckle. This prevents gripping the steering wheel from falsely triggering it!
-            val isStrictThumbUp = gestureName == "Thumb_Up" && score > 0.6f && thumbTip.y() < thumbMCP.y() - 0.05f
-            val isStrictThumbDown = gestureName == "Thumb_Down" && score > 0.6f && thumbTip.y() > thumbMCP.y() + 0.05f
+            val wristToMiddleAngle = Math.toDegrees(
+                Math.atan2(
+                    (middleMcp.y() - wrist.y()).toDouble(),
+                    (middleMcp.x() - wrist.x()).toDouble()
+                )
+            )
+            val nearlyHorizontalHand = Math.abs(wristToMiddleAngle) < 35.0 || Math.abs(wristToMiddleAngle) > 145.0
+            val fingersCurled = isFingerCurled(indexTip, indexPip, indexMcp) &&
+                isFingerCurled(middleTip, middlePip, middleMcp) &&
+                isFingerCurled(ringTip, ringPip, ringMcp)
+            val likelySteeringGrip = nearlyHorizontalHand && fingersCurled
+            val isStrictThumbUp = gestureName == "Thumb_Up" &&
+                score > 0.50f &&
+                thumbTip.y() < thumbMCP.y() - 0.04f &&
+                !likelySteeringGrip
+            val isStrictThumbDown = gestureName == "Thumb_Down" &&
+                score > 0.50f &&
+                thumbTip.y() > thumbMCP.y() + 0.04f &&
+                !likelySteeringGrip
 
             if (isStrictThumbUp || isStrictThumbDown) {
                 if (now - lastVolumeTickTime > tuning.volumeTickMs) {
                     if (isStrictThumbUp) {
-                        gestureListener.onGestureRecognized("Volume_Up")
+                        emitGesture("Volume_Up", now)
                     } else {
-                        gestureListener.onGestureRecognized("Volume_Down")
+                        emitGesture("Volume_Down", now)
                     }
                     lastVolumeTickTime = now
                 }
@@ -195,7 +274,7 @@ class GestureRecognizerHelper(
                 gestureName == "Victory" ||
                 gestureName == "Closed_Fist" ||
                 gestureName == "Pointing_Up"
-            val pinchGatePassed = score >= 0.55f && !likelyNonPinchGesture && pinchDepthGap < 0.07f
+            val pinchGatePassed = score >= 0.45f && !likelyNonPinchGesture && pinchDepthGap < 0.09f
             val pinchCandidate = pinchGatePassed && pinchDist2D < pinchEngageThreshold && pinchSpeed < 0.035f
 
             if (pinchCandidate) {
@@ -208,9 +287,9 @@ class GestureRecognizerHelper(
             // Cooldown for one-shot gestures, swipes and play/pause
             if (now - lastActionTime >= tuning.actionCooldownMs) {
                 // 2. BMW "Two-Finger Point" (Play/Pause)
-                if (gestureName == "Victory" && score > 0.5f) {
+                if (gestureName == "Victory" && score > 0.40f) {
                     if (lastRecognizedGesture != "Two_Finger_Point") {
-                        gestureListener.onGestureRecognized("Two_Finger_Point") 
+                        emitGesture("Two_Finger_Point", now) 
                         lastActionTime = now
                         isTracking = false
                         lastRecognizedGesture = "Two_Finger_Point"
@@ -248,10 +327,10 @@ class GestureRecognizerHelper(
                         Math.abs(dx) > (Math.abs(dy) * horizontalDominanceRatio)
                     ) {
                         if (dx > 0) {
-                            gestureListener.onGestureRecognized("Pinch_Drag_Right")
+                            emitGesture("Pinch_Drag_Right", now)
                             lastRecognizedGesture = "Pinch_Drag_Right"
                         } else {
-                            gestureListener.onGestureRecognized("Pinch_Drag_Left")
+                            emitGesture("Pinch_Drag_Left", now)
                             lastRecognizedGesture = "Pinch_Drag_Left"
                         }
                         lastActionTime = now
@@ -278,13 +357,23 @@ class GestureRecognizerHelper(
             if (gestureName == "None") {
                 lastRecognizedGesture = ""
             }
+            maybeSleepAfterTimeout(now)
         } else {
             isTracking = false
             lastRecognizedGesture = "" 
             pinchCandidateFrames = 0
             releaseCandidateFrames = 0
             previousPinchDist2D = Float.NaN
+            maybeSleepAfterTimeout(now)
         }
+    }
+
+    private fun isFingerCurled(
+        tip: com.google.mediapipe.tasks.components.containers.NormalizedLandmark,
+        pip: com.google.mediapipe.tasks.components.containers.NormalizedLandmark,
+        mcp: com.google.mediapipe.tasks.components.containers.NormalizedLandmark
+    ): Boolean {
+        return tip.y() > pip.y() && distance(tip, mcp) < distance(pip, mcp) * 1.8f
     }
 
     private fun returnLivestreamError(error: RuntimeException) {
@@ -299,5 +388,6 @@ class GestureRecognizerHelper(
 
     interface GestureListener {
         fun onGestureRecognized(gestureName: String)
+        fun onEngineStateChanged(state: EngineState)
     }
 }

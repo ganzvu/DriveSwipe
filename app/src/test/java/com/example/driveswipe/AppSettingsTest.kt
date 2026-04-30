@@ -24,5 +24,8 @@ class AppSettingsTest {
         assertEquals(0.15f, tuning.pinchReleaseThreshold)
         assertEquals(0.15f, tuning.swipeThreshold)
         assertEquals(1500L, tuning.swipeTimeoutMs)
+        assertEquals(5, tuning.palmHoldFrames)
+        assertEquals(8000L, tuning.activeTimeoutMs)
+        assertEquals(350L, tuning.idleInferenceIntervalMs)
     }
 }
