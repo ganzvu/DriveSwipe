@@ -53,6 +53,7 @@ fun DriveSwipeApp(
     onNightModeChanged: (Boolean) -> Unit,
     onRetryPermissions: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
+    onOpenOverlaySettings: () -> Unit,
     onPresetSelected: (GesturePreset) -> Unit,
     onMappingChanged: (String, DriveAction) -> Unit,
     onTuningChanged: (GestureTuning) -> Unit,
@@ -74,6 +75,7 @@ fun DriveSwipeApp(
                     uiState = uiState,
                     onRetryPermissions = onRetryPermissions,
                     onOpenNotificationSettings = onOpenNotificationSettings,
+                    onOpenOverlaySettings = onOpenOverlaySettings,
                     onContinue = { navController.navigate(Route.Home) }
                 )
             }
@@ -205,6 +207,7 @@ private fun SetupWizardScreen(
     uiState: MainUiState,
     onRetryPermissions: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
+    onOpenOverlaySettings: () -> Unit,
     onContinue: () -> Unit
 ) {
     val complete = uiState.isDriveReady
@@ -219,9 +222,13 @@ private fun SetupWizardScreen(
         PermissionRow("Camera access", uiState.hasCameraPermission)
         PermissionRow("Notifications permission", uiState.hasNotificationsPermission)
         PermissionRow("Notification listener access", uiState.hasNotificationListenerAccess)
+        PermissionRow("Draw over other apps (status dot)", uiState.hasOverlayPermission)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = onRetryPermissions) { Text("Retry checks") }
             TextButton(onClick = onOpenNotificationSettings) { Text("Open listener settings") }
+        }
+        if (!uiState.hasOverlayPermission) {
+            TextButton(onClick = onOpenOverlaySettings) { Text("Enable overlay permission") }
         }
         Button(onClick = onContinue, enabled = complete) { Text("Continue to Home") }
     }
