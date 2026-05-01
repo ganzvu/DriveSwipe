@@ -52,7 +52,6 @@ fun DriveSwipeApp(
     onToggleService: (Boolean) -> Unit,
     onNightModeChanged: (Boolean) -> Unit,
     onRetryPermissions: () -> Unit,
-    onOpenNotificationSettings: () -> Unit,
     onOpenOverlaySettings: () -> Unit,
     onPresetSelected: (GesturePreset) -> Unit,
     onMappingChanged: (String, DriveAction) -> Unit,
@@ -74,7 +73,6 @@ fun DriveSwipeApp(
                 SetupWizardScreen(
                     uiState = uiState,
                     onRetryPermissions = onRetryPermissions,
-                    onOpenNotificationSettings = onOpenNotificationSettings,
                     onOpenOverlaySettings = onOpenOverlaySettings,
                     onContinue = { navController.navigate(Route.Home) }
                 )
@@ -159,6 +157,22 @@ private fun HomeScreen(
             Switch(checked = uiState.settings.isNightMode, onCheckedChange = onNightModeChanged)
         }
 
+        if (!uiState.hasOverlayPermission) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Floating Status Dot", fontWeight = FontWeight.Bold)
+                    Text("Enable 'Draw over other apps' to see the gesture engine state while using Maps or Spotify.")
+                    TextButton(onClick = onOpenOverlaySettings) { Text("Grant Permission") }
+                }
+            }
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Floating Status Dot")
+                Spacer(modifier = Modifier.weight(1f))
+                Text("Active", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+            }
+        }
+
         Text("Preset")
         Row(
             modifier = Modifier
@@ -206,7 +220,6 @@ private fun HomeScreen(
 private fun SetupWizardScreen(
     uiState: MainUiState,
     onRetryPermissions: () -> Unit,
-    onOpenNotificationSettings: () -> Unit,
     onOpenOverlaySettings: () -> Unit,
     onContinue: () -> Unit
 ) {
@@ -221,14 +234,8 @@ private fun SetupWizardScreen(
         Text("Complete these checks before driving.")
         PermissionRow("Camera access", uiState.hasCameraPermission)
         PermissionRow("Notifications permission", uiState.hasNotificationsPermission)
-        PermissionRow("Notification listener access", uiState.hasNotificationListenerAccess)
-        PermissionRow("Draw over other apps (status dot)", uiState.hasOverlayPermission)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = onRetryPermissions) { Text("Retry checks") }
-            TextButton(onClick = onOpenNotificationSettings) { Text("Open listener settings") }
-        }
-        if (!uiState.hasOverlayPermission) {
-            TextButton(onClick = onOpenOverlaySettings) { Text("Enable overlay permission") }
         }
         Button(onClick = onContinue, enabled = complete) { Text("Continue to Home") }
     }

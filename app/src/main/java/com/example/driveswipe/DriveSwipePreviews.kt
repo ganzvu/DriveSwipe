@@ -14,7 +14,6 @@ private fun DriveSwipeHomePreview() {
                 isServiceRunning = true,
                 hasCameraPermission = true,
                 hasNotificationsPermission = true,
-                hasNotificationListenerAccess = true,
                 gestureHistory = listOf(
                     GestureEvent("Pinch_Drag_Right", DriveAction.NEXT_TRACK),
                     GestureEvent("Two_Finger_Point", DriveAction.PLAY_PAUSE)
@@ -23,7 +22,6 @@ private fun DriveSwipeHomePreview() {
             onToggleService = {},
             onNightModeChanged = {},
             onRetryPermissions = {},
-            onOpenNotificationSettings = {},
             onOpenOverlaySettings = {},
             onPresetSelected = {},
             onMappingChanged = { _, _ -> },
