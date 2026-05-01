@@ -59,6 +59,14 @@ class GestureService : LifecycleService(), SensorEventListener {
         mainHandler.post { attachOverlay() }
     }
 
+    private fun checkOverlayState() {
+        if (Settings.canDrawOverlays(this)) {
+            if (overlayView == null) attachOverlay()
+        } else {
+            if (overlayView != null) detachOverlay()
+        }
+    }
+
     private fun attachOverlay() {
         if (!Settings.canDrawOverlays(this)) return
         if (overlayView != null) return
@@ -109,6 +117,7 @@ class GestureService : LifecycleService(), SensorEventListener {
         applyConfig(intent)
         val nightMode = settings.isNightMode
         setNightMode(nightMode)
+        mainHandler.post { checkOverlayState() }
         return START_STICKY
     }
 
@@ -237,8 +246,8 @@ class GestureService : LifecycleService(), SensorEventListener {
     private fun handleGesture(gestureName: String) {
         Log.d("DriveSwipe", "Handling Gesture: $gestureName")
 
-        Handler(Looper.getMainLooper()).post {
-            android.widget.Toast.makeText(this, "Gesture: $gestureName", android.widget.Toast.LENGTH_SHORT).show()
+        mainHandler.post {
+            overlayView?.showGestureConfirmation()
         }
 
         val action = resolveAction(gestureName)
