@@ -83,5 +83,5 @@ This project reads local signing config from `keystore.properties`.
 
 ## Notes
 
-- Camera and notification listener permissions are required for full functionality.
+- Camera permission is required for full functionality.
 - There are known non-blocking build warnings around `android:extractNativeLibs` and deprecated CameraX analyzer sizing API.
