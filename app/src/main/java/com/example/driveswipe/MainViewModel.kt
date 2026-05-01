@@ -15,12 +15,11 @@ data class MainUiState(
     val engineState: EngineState = EngineState.IDLE,
     val hasCameraPermission: Boolean = false,
     val hasNotificationsPermission: Boolean = true,
-    val hasNotificationListenerAccess: Boolean = false,
     val hasOverlayPermission: Boolean = false,
     val gestureHistory: List<GestureEvent> = emptyList()
 ) {
     val isDriveReady: Boolean
-        get() = hasCameraPermission && hasNotificationsPermission && hasNotificationListenerAccess
+        get() = hasCameraPermission && hasNotificationsPermission
 }
 
 class MainViewModel(private val settingsRepository: SettingsRepository) : ViewModel() {
@@ -51,14 +50,12 @@ class MainViewModel(private val settingsRepository: SettingsRepository) : ViewMo
     fun updatePermissionStatus(
         hasCameraPermission: Boolean,
         hasNotificationsPermission: Boolean,
-        hasNotificationListenerAccess: Boolean,
         hasOverlayPermission: Boolean = false
     ) {
         _uiState.update {
             it.copy(
                 hasCameraPermission = hasCameraPermission,
                 hasNotificationsPermission = hasNotificationsPermission,
-                hasNotificationListenerAccess = hasNotificationListenerAccess,
                 hasOverlayPermission = hasOverlayPermission
             )
         }
