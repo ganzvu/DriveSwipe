@@ -56,7 +56,7 @@ Output:
 ```
 
 Output:
-- `app/build/outputs/apk/release/DriveSwipe-v1.0.apk`
+- `app/build/outputs/apk/release/DriveSwipe-v1.2.apk`
 
 ## Release Signing Setup
 
