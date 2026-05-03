@@ -50,6 +50,10 @@
 # MediaPipe uses JNI + protobuf reflection; keep everything under its namespace.
 -keep class com.google.mediapipe.** { *; }
 -keep class com.google.protobuf.** { *; }
+# MediaPipe Graph static init uses Google Flogger; forEnclosingClass() walks the
+# stack and fails under R8 with: IllegalStateException: no caller found on the stack.
+-keep class com.google.common.flogger.** { *; }
+-keep class * extends com.google.common.flogger.backend.Platform$LogCallerFinder { *; }
 -dontwarn com.google.mediapipe.**
 -dontwarn com.google.protobuf.**
 
