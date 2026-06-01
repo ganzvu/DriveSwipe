@@ -56,7 +56,7 @@ Output:
 ```
 
 Output:
-- `app/build/outputs/apk/release/DriveSwipe-v1.0.apk`
+- `app/build/outputs/apk/release/DriveSwipe-v1.2.apk`
 
 ## Release Signing Setup
 
@@ -83,5 +83,5 @@ This project reads local signing config from `keystore.properties`.
 
 ## Notes
 
-- Camera and notification listener permissions are required for full functionality.
+- Camera permission is required for full functionality.
 - There are known non-blocking build warnings around `android:extractNativeLibs` and deprecated CameraX analyzer sizing API.

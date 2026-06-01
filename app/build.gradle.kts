@@ -20,8 +20,8 @@ android {
         applicationId = "com.example.driveswipe"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -92,7 +92,7 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:${camerax_version}")
     implementation("androidx.camera:camera-view:${camerax_version}")
 
-    implementation("com.google.mediapipe:tasks-vision:0.10.14")
+    implementation("com.google.mediapipe:tasks-vision:0.10.33")
 
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")

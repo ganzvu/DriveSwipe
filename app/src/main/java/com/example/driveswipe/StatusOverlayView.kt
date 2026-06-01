@@ -50,6 +50,30 @@ class StatusOverlayView(context: Context) : View(context) {
         }
     }
 
+    fun showGestureConfirmation() {
+        pulseAnimator?.cancel()
+        val prevColor = dotColor
+        val prevAlpha = alpha
+        
+        dotColor = Color.WHITE
+        alpha = 1f
+        invalidate()
+        
+        pulseAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 500
+            interpolator = LinearInterpolator()
+            addUpdateListener { animator ->
+                val fraction = animator.animatedFraction
+                if (fraction > 0.7f) {
+                    dotColor = prevColor
+                    this@StatusOverlayView.alpha = prevAlpha
+                }
+                invalidate()
+            }
+            start()
+        }
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         paint.color = dotColor

@@ -82,7 +82,6 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                         onRetryPermissions = { checkPermissions() },
-                        onOpenNotificationSettings = { openNotificationListenerSettings() },
                         onOpenOverlaySettings = { openOverlaySettings() },
                         onPresetSelected = { viewModel.setPreset(it) },
                         onMappingChanged = { gestureKey, action -> viewModel.setMapping(gestureKey, action) },
@@ -113,16 +112,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun hasNotificationListenerPermission(): Boolean {
-        val enabledListeners = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
-        return enabledListeners != null && enabledListeners.contains(packageName)
-    }
-
-    private fun openNotificationListenerSettings() {
-        Toast.makeText(this, "Please enable Notification Access for DriveSwipe", Toast.LENGTH_LONG).show()
-        startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-    }
-
     private fun refreshPermissionState() {
         val hasCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
         val hasNotifications = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -130,9 +119,8 @@ class MainActivity : ComponentActivity() {
         } else {
             true
         }
-        val hasListener = hasNotificationListenerPermission()
         val hasOverlay = Settings.canDrawOverlays(this)
-        viewModel.updatePermissionStatus(hasCamera, hasNotifications, hasListener, hasOverlay)
+        viewModel.updatePermissionStatus(hasCamera, hasNotifications, hasOverlay)
     }
 
     fun openOverlaySettings() {
