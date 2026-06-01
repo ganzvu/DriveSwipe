@@ -38,14 +38,19 @@ data class GestureTuning(
     val swipeTimeoutMs: Long = 1500L,
     val alertingBurstMs: Long = 1500L,
     val activeTimeoutMs: Long = 8000L,
-    val idleInferenceIntervalMs: Long = 350L
+    val idleInferenceIntervalMs: Long = 350L,
+    val fistSleepConfirmFrames: Int = 5
 )
 
 data class AppSettings(
     val isNightMode: Boolean = false,
     val selectedPreset: GesturePreset = GesturePreset.STANDARD,
     val mappings: GestureMappings = GestureMappings(),
-    val tuning: GestureTuning = GestureTuning()
+    val tuning: GestureTuning = GestureTuning(),
+    val autoStartOnBluetooth: Boolean = false,
+    val targetBluetoothDeviceName: String? = null,
+    val targetBluetoothAddress: String? = null,
+    val autoStopOnDisconnect: Boolean = false
 )
 
 data class GestureEvent(

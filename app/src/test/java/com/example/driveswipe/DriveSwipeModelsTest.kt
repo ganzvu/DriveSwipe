@@ -82,6 +82,7 @@ class DriveSwipeModelsTest {
         assertEquals(0.15f, t.pinchReleaseThreshold)
         assertEquals(0.15f, t.swipeThreshold)
         assertEquals(1500L, t.swipeTimeoutMs)
+        assertEquals(5, t.fistSleepConfirmFrames)
     }
 
     @Test

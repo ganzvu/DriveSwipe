@@ -40,6 +40,7 @@ class GestureRecognizerHelper(
     private var pinchCandidateFrames = 0
     private var releaseCandidateFrames = 0
     private var previousPinchDist2D = Float.NaN
+    private var fistCandidateFrames = 0
 
     private val pinchConfirmFrames = 2
     private val pinchReleaseFrames = 2
@@ -217,6 +218,9 @@ class GestureRecognizerHelper(
             val ringTip = landmarks[16]
             val ringPip = landmarks[14]
             val ringMcp = landmarks[13]
+            val pinkyTip = landmarks[20]
+            val pinkyPip = landmarks[18]
+            val pinkyMcp = landmarks[17]
             
             var gestureName = "None"
             var score = 0f
@@ -383,6 +387,34 @@ class GestureRecognizerHelper(
             if (gestureName == "None") {
                 lastRecognizedGesture = ""
             }
+
+            // Closed Fist → explicit sleep
+            // Requires the fist to be held for fistSleepConfirmFrames consecutive frames while
+            // the hand is NOT in a horizontal steering-wheel grip orientation.
+            val isFistCandidate = gestureName == "Closed_Fist" &&
+                score > 0.55f &&
+                !nearlyHorizontalHand &&
+                isFingerCurled(indexTip, indexPip, indexMcp) &&
+                isFingerCurled(middleTip, middlePip, middleMcp) &&
+                isFingerCurled(ringTip, ringPip, ringMcp) &&
+                isFingerCurled(pinkyTip, pinkyPip, pinkyMcp)
+
+            if (isFistCandidate) {
+                fistCandidateFrames = (fistCandidateFrames + 1).coerceAtMost(tuning.fistSleepConfirmFrames + 1)
+                if (fistCandidateFrames >= tuning.fistSleepConfirmFrames) {
+                    fistCandidateFrames = 0
+                    isTracking = false
+                    pinchCandidateFrames = 0
+                    releaseCandidateFrames = 0
+                    previousPinchDist2D = Float.NaN
+                    emitGesture("Closed_Fist_Sleep", now)
+                    transitionTo(EngineState.IDLE, now)
+                    return
+                }
+            } else {
+                fistCandidateFrames = 0
+            }
+
             maybeSleepAfterTimeout(now)
         } else {
             isTracking = false
@@ -390,6 +422,7 @@ class GestureRecognizerHelper(
             pinchCandidateFrames = 0
             releaseCandidateFrames = 0
             previousPinchDist2D = Float.NaN
+            fistCandidateFrames = 0
             handleNoLandmarks(now)
         }
     }

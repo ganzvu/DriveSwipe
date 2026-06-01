@@ -274,6 +274,7 @@ class GestureService : LifecycleService(), SensorEventListener {
             "Two_Finger_Point" -> settings.mappings.twoFingerPoint
             "Volume_Up" -> settings.mappings.volumeUp
             "Volume_Down" -> settings.mappings.volumeDown
+            "Closed_Fist_Sleep" -> DriveAction.NONE
             else -> DriveAction.NONE
         }
     }
