@@ -35,6 +35,7 @@ private val DarkColorScheme = darkColorScheme(
 
 private val LightColorScheme = DarkColorScheme
 
+
 @Composable
 fun DriveSwipeTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
