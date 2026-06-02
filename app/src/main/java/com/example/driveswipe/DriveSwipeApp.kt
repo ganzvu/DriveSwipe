@@ -4,6 +4,7 @@ import com.example.driveswipe.ui.theme.*
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -27,6 +28,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.composed
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
@@ -74,13 +79,31 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 
-
 private object Route {
     const val Home = "home"
     const val Setup = "setup"
     const val Settings = "settings"
     const val AdvancedSettings = "advanced_settings"
     const val History = "history"
+}
+
+fun Modifier.bounceClick(onClick: () -> Unit) = composed {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1f,
+        label = "bounceScale"
+    )
+    this
+        .graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        }
+        .clickable(
+            interactionSource = interactionSource,
+            indication = null,
+            onClick = onClick
+        )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -185,7 +208,8 @@ private fun HomeScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp),
+                    .padding(bottom = 16.dp)
+                    .bounceClick(onGoSetup),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
@@ -213,59 +237,81 @@ private fun HomeScreen(
                             color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
                         )
                     }
-                    TextButton(onClick = onGoSetup) {
-                        Text("FIX", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onErrorContainer)
+                    Text(
+                        text = "FIX",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                }
+            }
+        }
+
+        // Telemetry status panel
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    text = "ACTIVE TELEMETRY STATUS",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextSecondary,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("LAST TRIGGERED", style = MaterialTheme.typography.labelSmall, color = TextSecondary.copy(alpha = 0.6f))
+                        val lastEvent = uiState.gestureHistory.firstOrNull()
+                        Text(
+                            text = lastEvent?.let { "${it.gestureName.replace('_', ' ')} -> ${it.action.name.replace('_', ' ')}" } ?: "None",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = if (lastEvent != null) MaterialTheme.colorScheme.primary else TextSecondary
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("NIGHT MODE", style = MaterialTheme.typography.labelSmall, color = TextSecondary.copy(alpha = 0.6f))
+                        Text(
+                            text = if (uiState.settings.isNightMode) "ACTIVE" else "INACTIVE",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = if (uiState.settings.isNightMode) AccentCyan else TextSecondary
+                        )
                     }
                 }
             }
         }
 
-        // Subtly show last gesture at the top
-        val lastEvent = uiState.gestureHistory.firstOrNull()
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-                .border(
-                    BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "LAST TRIGGERED ACTION",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = lastEvent?.let { "${it.gestureName.replace('_', ' ')} → ${it.action.name.replace('_', ' ')}" } ?: "No action triggered yet",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (lastEvent != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-            )
-        }
-
-        Spacer(modifier = Modifier.weight(1.2f))
+        Spacer(modifier = Modifier.weight(1f))
 
         // Hero Pulsing Button
         val infiniteTransition = rememberInfiniteTransition(label = "pulseRing")
         val pulseScale by infiniteTransition.animateFloat(
             initialValue = 1f,
-            targetValue = if (uiState.isServiceRunning) 1.06f else 1f,
+            targetValue = if (uiState.isServiceRunning) 1.08f else 1f,
             animationSpec = infiniteRepeatable(
-                animation = tween(1200, easing = FastOutSlowInEasing),
+                animation = tween(1400, easing = FastOutSlowInEasing),
                 repeatMode = RepeatMode.Reverse
             ),
             label = "pulseScale"
         )
         val glowAlpha by infiniteTransition.animateFloat(
-            initialValue = 0.1f,
-            targetValue = if (uiState.isServiceRunning) 0.35f else 0.05f,
+            initialValue = 0.08f,
+            targetValue = if (uiState.isServiceRunning) 0.32f else 0.04f,
             animationSpec = infiniteRepeatable(
-                animation = tween(1200, easing = FastOutSlowInEasing),
+                animation = tween(1400, easing = FastOutSlowInEasing),
                 repeatMode = RepeatMode.Reverse
             ),
             label = "glowAlpha"
@@ -307,17 +353,16 @@ private fun HomeScreen(
                     )
             )
 
-            // Border stroke feedback
+            // Tactile engine switch button
             Box(
                 modifier = Modifier
                     .size(190.dp)
                     .clip(CircleShape)
                     .border(BorderStroke(3.dp, stateColor), CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { onToggleService(!uiState.isServiceRunning) },
+                    .bounceClick { onToggleService(!uiState.isServiceRunning) },
                 contentAlignment = Alignment.Center
             ) {
-                // Floating status icon at the top of the button
                 Icon(
                     imageVector = if (uiState.isServiceRunning) Icons.Default.Refresh else Icons.Default.PlayArrow,
                     contentDescription = if (uiState.isServiceRunning) "Stop Engine" else "Start Engine",
@@ -328,7 +373,6 @@ private fun HomeScreen(
                         .padding(top = 20.dp)
                 )
 
-                // Perfectly centered engine state text
                 Column(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -356,8 +400,8 @@ private fun HomeScreen(
         Box(
             modifier = Modifier
                 .border(BorderStroke(1.dp, stateColor.copy(alpha = 0.5f)), RoundedCornerShape(20.dp))
-                .background(stateColor.copy(alpha = 0.06f))
-                .padding(horizontal = 14.dp, vertical = 4.dp)
+                .background(stateColor.copy(alpha = 0.08f))
+                .padding(horizontal = 14.dp, vertical = 6.dp)
         ) {
             Text(
                 text = stateLabel,
@@ -382,67 +426,69 @@ private fun HomeScreen(
             modifier = Modifier.padding(horizontal = 16.dp)
         )
 
-        Spacer(modifier = Modifier.weight(1.5f))
+        Spacer(modifier = Modifier.weight(1f))
 
-        // Float status permission trigger (if not granted)
-        if (!uiState.hasOverlayPermission) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+        // Navigation dock at the bottom left (stacked vertically)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)), CircleShape)
+                        .bounceClick(onGoHistory),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Status Overlay Dot",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                        Text(
-                            text = "Overlay status indicator above other apps.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextSecondary
-                        )
-                    }
-                    Button(
-                        onClick = onOpenOverlaySettings,
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Enable", color = DarkBg, fontWeight = FontWeight.Bold)
-                    }
+                    Icon(
+                        imageVector = Icons.Default.List,
+                        contentDescription = "History Log",
+                        tint = TextSecondary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)), CircleShape)
+                        .bounceClick(onGoSettings),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Configuration",
+                        tint = TextSecondary,
+                        modifier = Modifier.size(22.dp)
+                    )
                 }
             }
-        }
 
-        // Navigation links aligned to the bottom left (stacked vertically)
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            IconButton(onClick = onGoHistory, modifier = Modifier.size(48.dp)) {
-                Icon(
-                    imageVector = Icons.Default.List,
-                    contentDescription = "History Log",
-                    tint = TextSecondary,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            IconButton(onClick = onGoSettings, modifier = Modifier.size(48.dp)) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Configuration",
-                    tint = TextSecondary,
-                    modifier = Modifier.size(24.dp)
-                )
+            // Quick permission prompt if needed
+            if (!uiState.hasOverlayPermission) {
+                Box(
+                    modifier = Modifier
+                        .height(84.dp)
+                        .width(200.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)), RoundedCornerShape(16.dp))
+                        .bounceClick(onOpenOverlaySettings)
+                        .padding(12.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.Center, modifier = Modifier.fillMaxSize()) {
+                        Text("Status Dot Overlay", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text("Tap to configure dot overlay", style = MaterialTheme.typography.bodyMedium, color = TextSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
+                }
             }
         }
     }
@@ -476,7 +522,7 @@ private fun SetupWizardScreen(
         
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
         ) {
@@ -503,47 +549,53 @@ private fun SetupWizardScreen(
             }
         }
         
-        Button(
-            onClick = onRetryPermissions,
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = TextPrimary
-            ),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                .height(50.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)), RoundedCornerShape(14.dp))
+                .bounceClick(onRetryPermissions),
+            contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.Refresh,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Retry Permission Checks", fontWeight = FontWeight.Bold)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = null,
+                    tint = TextPrimary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Retry Permission Checks", fontWeight = FontWeight.Bold, color = TextPrimary)
+            }
         }
         
         Spacer(modifier = Modifier.weight(1f))
         
-        Button(
-            onClick = onContinue, 
-            enabled = complete,
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(54.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = DarkBg,
-                disabledContainerColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
-                disabledContentColor = TextSecondary.copy(alpha = 0.5f)
-            )
+                .height(54.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    if (complete) MaterialTheme.colorScheme.primary 
+                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                )
+                .then(
+                    if (complete) Modifier.bounceClick(onContinue) 
+                    else Modifier
+                ),
+            contentAlignment = Alignment.Center
         ) { 
             Text(
                 text = "Continue to App",
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold
+                fontWeight = FontWeight.ExtraBold,
+                color = if (complete) DarkBg else TextSecondary.copy(alpha = 0.5f)
             ) 
         }
     }
@@ -616,7 +668,7 @@ private fun SettingsScreen(
             }
         }
 
-        // Preferences Group
+        // Preferences Group (Bento Card 1)
         Text(
             text = "PREFERENCES",
             style = MaterialTheme.typography.labelSmall,
@@ -676,7 +728,7 @@ private fun SettingsScreen(
             }
         }
 
-        // Autostart tips panel
+        // Autostart tips panel (Bento Card 2)
         Text(
             text = "AUTOSTART INTEGRATION",
             style = MaterialTheme.typography.labelSmall,
@@ -725,7 +777,7 @@ private fun SettingsScreen(
             }
         }
 
-        // Gestures Group
+        // Gestures Group (Bento Card 3)
         Text(
             text = "GESTURE MAPPINGS",
             style = MaterialTheme.typography.labelSmall,
@@ -780,24 +832,22 @@ private fun SettingsScreen(
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-        Button(
-            onClick = onGoAdvanced,
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(54.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = TextPrimary
-            ),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                .height(54.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)), RoundedCornerShape(16.dp))
+                .bounceClick(onGoAdvanced),
+            contentAlignment = Alignment.Center
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Advanced Tuning & Thresholds", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                Text("Advanced Tuning & Thresholds", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = TextPrimary)
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowRight,
                     contentDescription = null,
@@ -867,7 +917,6 @@ private fun MappingEditor(
         }
     }
 }
-
 
 @Composable
 private fun AdvancedSettingsScreen(
@@ -986,19 +1035,17 @@ private fun AdvancedSettingsScreen(
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-        Button(
-            onClick = onResetTuning,
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = TextPrimary
-            ),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                .height(50.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)), RoundedCornerShape(14.dp))
+                .bounceClick(onResetTuning),
+            contentAlignment = Alignment.Center
         ) {
-            Text("Reset to System Defaults", fontWeight = FontWeight.Bold)
+            Text("Reset to System Defaults", fontWeight = FontWeight.Bold, color = TextPrimary)
         }
     }
 }
