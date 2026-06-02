@@ -3,7 +3,7 @@ package com.example.driveswipe.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Main Color
-val MainBlue = Color(0xFF0047AB) // #0047AB
+val MainBlue = Color(0xFF5A9FFF) // #5A9FFF
 
 // Sub Colors
 val SubBlueLight = Color(0xFFBFD1E5)  // #BFD1E5
@@ -16,8 +16,8 @@ val DarkSurface = Color(0xFF071024)    // Dark Navy surface
 val DarkCard = SubBlueDark             // #002F6C
 val DarkBorder = Color(0xFF0E2E5C)     // Muted blue border
 
-val AccentCyan = SubBlueBright         // #0066FF (Bright Blue highlights)
-val AccentSteel = MainBlue             // #0047AB (Main Cobalt Blue)
+val AccentCyan = MainBlue              // #5A9FFF (Main Color)
+val AccentSteel = SubBlueBright        // #0066FF (Sub Color)
 
 val TextPrimary = Color(0xFFF8FAFC)    // Off-white for max readability
 val TextSecondary = SubBlueLight       // #BFD1E5 (Light Slate Blue secondary text)
