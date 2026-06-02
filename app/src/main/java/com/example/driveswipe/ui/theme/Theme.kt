@@ -32,10 +32,7 @@ private val DarkColorScheme = darkColorScheme(
     error = StateError,
     onError = DarkBg
 )
-
 private val LightColorScheme = DarkColorScheme
-
-
 @Composable
 fun DriveSwipeTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
