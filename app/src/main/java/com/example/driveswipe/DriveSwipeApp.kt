@@ -1,7 +1,6 @@
 package com.example.driveswipe
 
 import com.example.driveswipe.ui.theme.*
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
