@@ -33,23 +33,7 @@ private val DarkColorScheme = darkColorScheme(
     onError = DarkBg
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = AccentCyan,
-    secondary = AccentSteel,
-    tertiary = AccentCyan,
-    background = DarkBg,
-    surface = DarkSurface,
-    onPrimary = DarkBg,
-    onSecondary = DarkBg,
-    onTertiary = DarkBg,
-    onBackground = TextPrimary,
-    onSurface = TextPrimary,
-    surfaceVariant = DarkCard,
-    onSurfaceVariant = TextSecondary,
-    outline = DarkBorder,
-    error = StateError,
-    onError = DarkBg
-)
+private val LightColorScheme = DarkColorScheme
 
 @Composable
 fun DriveSwipeTheme(
