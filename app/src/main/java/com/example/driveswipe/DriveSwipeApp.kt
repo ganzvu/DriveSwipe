@@ -317,17 +317,23 @@ private fun HomeScreen(
                     .clickable { onToggleService(!uiState.isServiceRunning) },
                 contentAlignment = Alignment.Center
             ) {
+                // Floating status icon at the top of the button
+                Icon(
+                    imageVector = if (uiState.isServiceRunning) Icons.Default.Refresh else Icons.Default.PlayArrow,
+                    contentDescription = if (uiState.isServiceRunning) "Stop Engine" else "Start Engine",
+                    tint = if (uiState.isServiceRunning) TextPrimary else stateColor,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .align(Alignment.TopCenter)
+                        .padding(top = 20.dp)
+                )
+
+                // Perfectly centered engine state text
                 Column(
+                    modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Icon(
-                        imageVector = if (uiState.isServiceRunning) Icons.Default.Refresh else Icons.Default.PlayArrow,
-                        contentDescription = if (uiState.isServiceRunning) "Stop Engine" else "Start Engine",
-                        tint = if (uiState.isServiceRunning) TextPrimary else stateColor,
-                        modifier = Modifier.size(36.dp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = if (uiState.isServiceRunning) "STOP" else "START",
                         style = MaterialTheme.typography.headlineLarge,
