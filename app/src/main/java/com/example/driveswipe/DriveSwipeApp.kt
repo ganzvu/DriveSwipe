@@ -344,6 +344,30 @@ private fun SettingsScreen(
             }
         }
 
+        Text("Autostart", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Samsung Routine", fontWeight = FontWeight.Bold)
+                Text(
+                    "Use Samsung Modes and Routines to start DriveSwipe when your car Bluetooth connects.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    "Create a Routine with condition: Bluetooth device connected. For the action, choose DriveSwipe's Start DriveSwipe shortcut or app action.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    "For auto-stop, create a second Routine with condition: Bluetooth device disconnected, then choose Stop DriveSwipe.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    "Grant DriveSwipe camera and notification permissions before using the Routine.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
         // Gestures
         Text("Gestures", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
         Text("Preset Configuration", fontWeight = FontWeight.SemiBold)

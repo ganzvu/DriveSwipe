@@ -30,9 +30,28 @@
             android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.DriveSwipe">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".RoutineTriggerActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:theme="@style/Theme.DriveSwipe">
+            <intent-filter>
+                <action android:name="com.example.driveswipe.action.ROUTINE_START" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.example.driveswipe.action.ROUTINE_STOP" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 

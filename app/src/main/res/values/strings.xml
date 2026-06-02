@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">DriveSwipe</string>
+    <string name="shortcut_start_short_label">Start DriveSwipe</string>
+    <string name="shortcut_start_long_label">Start DriveSwipe listening</string>
+    <string name="shortcut_stop_short_label">Stop DriveSwipe</string>
+    <string name="shortcut_stop_long_label">Stop DriveSwipe listening</string>
 </resources>

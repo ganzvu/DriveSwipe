@@ -19,6 +19,8 @@ object ServiceContract {
 
     const val ACTION_GESTURE_EVENT = "com.example.driveswipe.ACTION_GESTURE_EVENT"
     const val ACTION_ENGINE_STATE_EVENT = "com.example.driveswipe.ACTION_ENGINE_STATE_EVENT"
+    const val ACTION_ROUTINE_START = "com.example.driveswipe.action.ROUTINE_START"
+    const val ACTION_ROUTINE_STOP = "com.example.driveswipe.action.ROUTINE_STOP"
     const val EXTRA_EVENT_GESTURE = "EVENT_GESTURE"
     const val EXTRA_EVENT_ACTION = "EVENT_ACTION"
     const val EXTRA_ENGINE_STATE = "ENGINE_STATE"
