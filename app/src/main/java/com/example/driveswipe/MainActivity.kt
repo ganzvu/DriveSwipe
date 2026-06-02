@@ -133,40 +133,23 @@ class MainActivity : ComponentActivity() {
 
     private fun startGestureService() {
         val settings = viewModel.uiState.value.settings
-        val intent = Intent(this, GestureService::class.java).apply {
-            putExtra(ServiceContract.EXTRA_NIGHT_MODE, settings.isNightMode)
-            putExtra(ServiceContract.EXTRA_ACTION_COOLDOWN_MS, settings.tuning.actionCooldownMs)
-            putExtra(ServiceContract.EXTRA_VOLUME_TICK_MS, settings.tuning.volumeTickMs)
-            putExtra(ServiceContract.EXTRA_PINCH_THRESHOLD, settings.tuning.pinchThreshold)
-            putExtra(ServiceContract.EXTRA_PINCH_RELEASE_THRESHOLD, settings.tuning.pinchReleaseThreshold)
-            putExtra(ServiceContract.EXTRA_SWIPE_THRESHOLD, settings.tuning.swipeThreshold)
-            putExtra(ServiceContract.EXTRA_SWIPE_TIMEOUT_MS, settings.tuning.swipeTimeoutMs)
-            putExtra(ServiceContract.EXTRA_ALERTING_BURST_MS, settings.tuning.alertingBurstMs)
-            putExtra(ServiceContract.EXTRA_ACTIVE_TIMEOUT_MS, settings.tuning.activeTimeoutMs)
-            putExtra(ServiceContract.EXTRA_IDLE_INFERENCE_INTERVAL_MS, settings.tuning.idleInferenceIntervalMs)
-            putExtra(ServiceContract.EXTRA_MAP_PINCH_RIGHT, settings.mappings.pinchDragRight.name)
-            putExtra(ServiceContract.EXTRA_MAP_PINCH_LEFT, settings.mappings.pinchDragLeft.name)
-            putExtra(ServiceContract.EXTRA_MAP_TWO_FINGER, settings.mappings.twoFingerPoint.name)
-            putExtra(ServiceContract.EXTRA_MAP_VOLUME_UP, settings.mappings.volumeUp.name)
-            putExtra(ServiceContract.EXTRA_MAP_VOLUME_DOWN, settings.mappings.volumeDown.name)
+        if (!GestureServiceController.hasRequiredStartPermissions(this)) {
+            checkPermissions()
+            return
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            ContextCompat.startForegroundService(this, intent)
-        } else {
-            startService(intent)
-        }
+        GestureServiceController.start(this, settings)
         viewModel.setServiceRunning(true)
     }
 
     private fun stopGestureService() {
-        val intent = Intent(this, GestureService::class.java)
-        stopService(intent)
+        GestureServiceController.stop(this)
         viewModel.setServiceRunning(false)
     }
 
     override fun onResume() {
         super.onResume()
         refreshPermissionState()
+        viewModel.setServiceRunning(GestureServiceController.isRunning(this))
     }
 
     override fun onStart() {
@@ -180,6 +163,7 @@ class MainActivity : ComponentActivity() {
         } else {
             registerReceiver(serviceEventReceiver, filter)
         }
+        viewModel.setServiceRunning(GestureServiceController.isRunning(this))
     }
 
     override fun onStop() {

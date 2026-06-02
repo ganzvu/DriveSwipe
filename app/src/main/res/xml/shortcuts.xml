@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutId="routine_start"
+        android:shortcutLongLabel="@string/shortcut_start_long_label"
+        android:shortcutShortLabel="@string/shortcut_start_short_label">
+        <intent
+            android:action="com.example.driveswipe.action.ROUTINE_START"
+            android:targetClass="com.example.driveswipe.RoutineTriggerActivity"
+            android:targetPackage="com.example.driveswipe" />
+    </shortcut>
+
+    <shortcut
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutId="routine_stop"
+        android:shortcutLongLabel="@string/shortcut_stop_long_label"
+        android:shortcutShortLabel="@string/shortcut_stop_short_label">
+        <intent
+            android:action="com.example.driveswipe.action.ROUTINE_STOP"
+            android:targetClass="com.example.driveswipe.RoutineTriggerActivity"
+            android:targetPackage="com.example.driveswipe" />
+    </shortcut>
+</shortcuts>
