@@ -416,42 +416,28 @@ private fun HomeScreen(
             }
         }
 
-        // Sleek floating navigation bar for Quick Links
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+        // Navigation links aligned to the bottom left
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Start,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onGoHistory, modifier = Modifier.size(48.dp)) {
-                    Icon(
-                        imageVector = Icons.Default.List,
-                        contentDescription = "History Log",
-                        tint = TextSecondary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .height(24.dp)
-                        .width(1.dp)
-                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+            IconButton(onClick = onGoHistory, modifier = Modifier.size(48.dp)) {
+                Icon(
+                    imageVector = Icons.Default.List,
+                    contentDescription = "History Log",
+                    tint = TextSecondary,
+                    modifier = Modifier.size(24.dp)
                 )
-                IconButton(onClick = onGoSettings, modifier = Modifier.size(48.dp)) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Configuration",
-                        tint = TextSecondary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            IconButton(onClick = onGoSettings, modifier = Modifier.size(48.dp)) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Configuration",
+                    tint = TextSecondary,
+                    modifier = Modifier.size(24.dp)
+                )
             }
         }
     }
