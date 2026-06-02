@@ -16,21 +16,45 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = AccentCyan,
+    secondary = AccentSteel,
+    tertiary = AccentCyan,
+    background = DarkBg,
+    surface = DarkSurface,
+    onPrimary = DarkBg,
+    onSecondary = DarkBg,
+    onTertiary = DarkBg,
+    onBackground = TextPrimary,
+    onSurface = TextPrimary,
+    surfaceVariant = DarkCard,
+    onSurfaceVariant = TextSecondary,
+    outline = DarkBorder,
+    error = StateError,
+    onError = DarkBg
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary = AccentCyan,
+    secondary = AccentSteel,
+    tertiary = AccentCyan,
+    background = DarkBg,
+    surface = DarkSurface,
+    onPrimary = DarkBg,
+    onSecondary = DarkBg,
+    onTertiary = DarkBg,
+    onBackground = TextPrimary,
+    onSurface = TextPrimary,
+    surfaceVariant = DarkCard,
+    onSurfaceVariant = TextSecondary,
+    outline = DarkBorder,
+    error = StateError,
+    onError = DarkBg
 )
 
 @Composable
 fun DriveSwipeTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

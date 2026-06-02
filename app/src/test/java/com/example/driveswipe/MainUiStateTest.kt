@@ -13,8 +13,7 @@ class MainUiStateTest {
     fun isDriveReadyTrueWhenAllPermissionsGranted() {
         val state = MainUiState(
             hasCameraPermission = true,
-            hasNotificationsPermission = true,
-            hasNotificationListenerAccess = true
+            hasNotificationsPermission = true
         )
         assertTrue(state.isDriveReady)
     }
@@ -23,8 +22,7 @@ class MainUiStateTest {
     fun isDriveReadyFalseWhenCameraPermissionMissing() {
         val state = MainUiState(
             hasCameraPermission = false,
-            hasNotificationsPermission = true,
-            hasNotificationListenerAccess = true
+            hasNotificationsPermission = true
         )
         assertFalse(state.isDriveReady)
     }
@@ -33,18 +31,7 @@ class MainUiStateTest {
     fun isDriveReadyFalseWhenNotificationsPermissionMissing() {
         val state = MainUiState(
             hasCameraPermission = true,
-            hasNotificationsPermission = false,
-            hasNotificationListenerAccess = true
-        )
-        assertFalse(state.isDriveReady)
-    }
-
-    @Test
-    fun isDriveReadyFalseWhenNotificationListenerAccessMissing() {
-        val state = MainUiState(
-            hasCameraPermission = true,
-            hasNotificationsPermission = true,
-            hasNotificationListenerAccess = false
+            hasNotificationsPermission = false
         )
         assertFalse(state.isDriveReady)
     }
@@ -53,8 +40,7 @@ class MainUiStateTest {
     fun isDriveReadyFalseWhenAllPermissionsMissing() {
         val state = MainUiState(
             hasCameraPermission = false,
-            hasNotificationsPermission = false,
-            hasNotificationListenerAccess = false
+            hasNotificationsPermission = false
         )
         assertFalse(state.isDriveReady)
     }
@@ -63,18 +49,7 @@ class MainUiStateTest {
     fun isDriveReadyFalseWhenOnlyCameraPermissionGranted() {
         val state = MainUiState(
             hasCameraPermission = true,
-            hasNotificationsPermission = false,
-            hasNotificationListenerAccess = false
-        )
-        assertFalse(state.isDriveReady)
-    }
-
-    @Test
-    fun isDriveReadyFalseWhenOnlyListenerAccessGranted() {
-        val state = MainUiState(
-            hasCameraPermission = false,
-            hasNotificationsPermission = false,
-            hasNotificationListenerAccess = true
+            hasNotificationsPermission = false
         )
         assertFalse(state.isDriveReady)
     }
@@ -82,12 +57,11 @@ class MainUiStateTest {
     // ── Default state ────────────────────────────────────────────────────────
 
     @Test
-    fun defaultStateHasNotificationsPermissionButCameraAndListenerMissingAndServiceNotRunning() {
+    fun defaultStateHasNotificationsPermissionButCameraMissingAndServiceNotRunning() {
         val state = MainUiState()
         assertFalse(state.hasCameraPermission)
         assertTrue(state.hasNotificationsPermission)
         assertFalse(state.isServiceRunning)
-        assertFalse(state.hasNotificationListenerAccess)
         assertFalse(state.isDriveReady)
     }
 
