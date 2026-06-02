@@ -266,26 +266,35 @@ private fun HomeScreen(
                     color = TextSecondary,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(10.dp))
-                Row(
+                Spacer(modifier = Modifier.height(12.dp))
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Column {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.Start
+                    ) {
                         Text("LAST TRIGGERED", style = MaterialTheme.typography.labelSmall, color = TextSecondary.copy(alpha = 0.6f))
+                        Spacer(modifier = Modifier.height(4.dp))
                         val lastEvent = uiState.gestureHistory.firstOrNull()
                         Text(
                             text = lastEvent?.let { "${it.gestureName.replace('_', ' ')} -> ${it.action.name.replace('_', ' ')}" } ?: "None",
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = if (lastEvent != null) MaterialTheme.colorScheme.primary else TextSecondary
                         )
                     }
-                    Column(horizontalAlignment = Alignment.End) {
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text("NIGHT MODE", style = MaterialTheme.typography.labelSmall, color = TextSecondary.copy(alpha = 0.6f))
                         Text(
                             text = if (uiState.settings.isNightMode) "ACTIVE" else "INACTIVE",
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = if (uiState.settings.isNightMode) AccentCyan else TextSecondary
                         )
