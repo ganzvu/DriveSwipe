@@ -834,8 +834,8 @@ private fun SettingsScreen(
                     MappingEditor("Pinch Drag Right", uiState.settings.mappings.pinchDragRight) { onMappingChanged("Pinch_Drag_Right", it) }
                     MappingEditor("Pinch Drag Left", uiState.settings.mappings.pinchDragLeft) { onMappingChanged("Pinch_Drag_Left", it) }
                     MappingEditor("Two Finger Point", uiState.settings.mappings.twoFingerPoint) { onMappingChanged("Two_Finger_Point", it) }
-                    MappingEditor("Volume Up", uiState.settings.mappings.volumeUp) { onMappingChanged("Volume_Up", it) }
-                    MappingEditor("Volume Down", uiState.settings.mappings.volumeDown) { onMappingChanged("Volume_Down", it) }
+                    MappingEditor("Thumb Up", uiState.settings.mappings.volumeUp) { onMappingChanged("Volume_Up", it) }
+                    MappingEditor("Thumb Down", uiState.settings.mappings.volumeDown) { onMappingChanged("Volume_Down", it) }
                 }
             }
         }
