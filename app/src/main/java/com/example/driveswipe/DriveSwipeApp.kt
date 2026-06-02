@@ -416,11 +416,11 @@ private fun HomeScreen(
             }
         }
 
-        // Navigation links aligned to the bottom left
-        Row(
+        // Navigation links aligned to the bottom left (stacked vertically)
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.CenterVertically
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             IconButton(onClick = onGoHistory, modifier = Modifier.size(48.dp)) {
                 Icon(
@@ -430,7 +430,6 @@ private fun HomeScreen(
                     modifier = Modifier.size(24.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(8.dp))
             IconButton(onClick = onGoSettings, modifier = Modifier.size(48.dp)) {
                 Icon(
                     imageVector = Icons.Default.Settings,
