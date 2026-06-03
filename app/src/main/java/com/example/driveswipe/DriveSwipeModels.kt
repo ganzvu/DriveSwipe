@@ -22,8 +22,8 @@ enum class EngineState {
 }
 
 data class GestureMappings(
-    val pinchDragRight: DriveAction = DriveAction.NEXT_TRACK,
-    val pinchDragLeft: DriveAction = DriveAction.PREVIOUS_TRACK,
+    val pinchDragRight: DriveAction = DriveAction.PREVIOUS_TRACK,
+    val pinchDragLeft: DriveAction = DriveAction.NEXT_TRACK,
     val twoFingerPoint: DriveAction = DriveAction.PLAY_PAUSE,
     val volumeUp: DriveAction = DriveAction.VOLUME_UP,
     val volumeDown: DriveAction = DriveAction.VOLUME_DOWN

@@ -40,8 +40,8 @@ class SettingsRepository(private val context: Context) {
                 GesturePreset.valueOf(prefs[Keys.preset] ?: GesturePreset.STANDARD.name)
             }.getOrDefault(GesturePreset.STANDARD),
             mappings = GestureMappings(
-                pinchDragRight = actionFrom(prefs[Keys.mapRight], DriveAction.NEXT_TRACK),
-                pinchDragLeft = actionFrom(prefs[Keys.mapLeft], DriveAction.PREVIOUS_TRACK),
+                pinchDragRight = actionFrom(prefs[Keys.mapRight], DriveAction.PREVIOUS_TRACK),
+                pinchDragLeft = actionFrom(prefs[Keys.mapLeft], DriveAction.NEXT_TRACK),
                 twoFingerPoint = actionFrom(prefs[Keys.mapTwoFinger], DriveAction.PLAY_PAUSE),
                 volumeUp = actionFrom(prefs[Keys.mapVolumeUp], DriveAction.VOLUME_UP),
                 volumeDown = actionFrom(prefs[Keys.mapVolumeDown], DriveAction.VOLUME_DOWN)
