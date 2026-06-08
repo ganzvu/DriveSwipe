@@ -75,9 +75,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.Canvas
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.navigation.compose.currentBackStackEntryAsState
+
 
 private object Route {
     const val Home = "home"
@@ -86,6 +95,7 @@ private object Route {
     const val AdvancedSettings = "advanced_settings"
     const val History = "history"
 }
+
 
 fun Modifier.bounceClick(onClick: () -> Unit) = composed {
     val interactionSource = remember { MutableInteractionSource() }
@@ -106,6 +116,124 @@ fun Modifier.bounceClick(onClick: () -> Unit) = composed {
         )
 }
 
+@Composable
+fun GlassCard(
+    modifier: Modifier = Modifier,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(16.dp),
+    border: BorderStroke? = null,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val cardModifier = if (onClick != null) modifier.bounceClick(onClick) else modifier
+    Card(
+        modifier = cardModifier,
+        shape = shape,
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0x991E293B)
+        ),
+        border = border ?: BorderStroke(
+            width = 1.dp,
+            color = Color(0x1AFFFFFF)
+        ),
+        content = content
+    )
+}
+
+
+
+@Composable
+fun PowerIcon(
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        val strokeWidthPx = 6.dp.toPx()
+        drawArc(
+            color = color,
+            startAngle = -240f,
+            sweepAngle = 300f,
+            useCenter = false,
+            style = Stroke(
+                width = strokeWidthPx,
+                cap = StrokeCap.Round
+            )
+        )
+        drawLine(
+            color = color,
+            start = Offset(size.width / 2, size.height * 0.1f),
+            end = Offset(size.width / 2, size.height * 0.55f),
+            strokeWidth = strokeWidthPx,
+            cap = StrokeCap.Round
+        )
+    }
+}
+
+@Composable
+fun BottomNavBar(
+    currentRoute: String?,
+    onNavigate: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xCC152031))
+            .border(BorderStroke(1.dp, Color(0x1AFFFFFF)), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+            .padding(bottom = 12.dp, top = 8.dp),
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BottomNavItem(
+            label = "Drive",
+            icon = Icons.Default.PlayArrow,
+            isActive = currentRoute == Route.Home,
+            onClick = { onNavigate(Route.Home) }
+        )
+        BottomNavItem(
+            label = "History",
+            icon = Icons.Default.List,
+            isActive = currentRoute == Route.History,
+            onClick = { onNavigate(Route.History) }
+        )
+        BottomNavItem(
+            label = "Settings",
+            icon = Icons.Default.Settings,
+            isActive = currentRoute == Route.Settings,
+            onClick = { onNavigate(Route.Settings) }
+        )
+    }
+}
+
+@Composable
+private fun BottomNavItem(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isActive: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .bounceClick(onClick)
+            .padding(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = if (isActive) AccentCyan else TextSecondary,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = if (isActive) AccentCyan else TextSecondary,
+            fontSize = 10.sp
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DriveSwipeApp(
@@ -120,6 +248,10 @@ fun DriveSwipeApp(
     onResetTuning: () -> Unit
 ) {
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    val showBottomBar = currentRoute in listOf(Route.Home, Route.History, Route.Settings)
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -136,6 +268,20 @@ fun DriveSwipeApp(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
+        },
+        bottomBar = {
+            if (showBottomBar) {
+                BottomNavBar(
+                    currentRoute = currentRoute,
+                    onNavigate = { route ->
+                        navController.navigate(route) {
+                            popUpTo(Route.Home) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+            }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
@@ -205,14 +351,21 @@ private fun HomeScreen(
     ) {
         // Status indicator banner
         if (!uiState.isDriveReady) {
-            Card(
+            GlassCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp)
-                    .bounceClick(onGoSetup),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                    .padding(bottom = 16.dp),
+                onClick = onGoSetup,
+                shape = RoundedCornerShape(20.dp),
+                border = BorderStroke(
+                    1.dp,
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0xFFFFB4AB).copy(alpha = 0.4f),
+                            Color(0xFFFFB4AB).copy(alpha = 0.1f)
+                        )
+                    )
+                )
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
@@ -221,7 +374,7 @@ private fun HomeScreen(
                     Icon(
                         imageVector = Icons.Default.Info,
                         contentDescription = "Permission Alert",
-                        tint = MaterialTheme.colorScheme.onErrorContainer
+                        tint = StateError
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
@@ -229,83 +382,121 @@ private fun HomeScreen(
                             text = "Setup Incomplete",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            color = TextPrimary
                         )
                         Text(
                             text = "Camera & notifications are required.",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                            color = TextSecondary
                         )
                     }
                     Text(
                         text = "FIX",
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        color = StateError,
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
                 }
             }
         }
 
-        // Telemetry status panel
-        Card(
+        // Telemetry status panel (Bento-style Last Triggered Action Card from Stitch)
+        val lastEvent = uiState.gestureHistory.firstOrNull()
+        var triggerToggle by remember { mutableStateOf(false) }
+        LaunchedEffect(lastEvent) {
+            if (lastEvent != null) {
+                triggerToggle = true
+                kotlinx.coroutines.delay(2000)
+                triggerToggle = false
+            }
+        }
+        val barWidthProgress by animateFloatAsState(
+            targetValue = if (triggerToggle) 1f else 0f,
+            animationSpec = tween(durationMillis = if (triggerToggle) 300 else 1000),
+            label = "barWidth"
+        )
+
+        GlassCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                .padding(vertical = 8.dp)
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(20.dp),
                 horizontalAlignment = Alignment.Start
             ) {
-                Text(
-                    text = "ACTIVE TELEMETRY STATUS",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextSecondary,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Column(
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.Start
-                    ) {
-                        Text("LAST TRIGGERED", style = MaterialTheme.typography.labelSmall, color = TextSecondary.copy(alpha = 0.6f))
-                        Spacer(modifier = Modifier.height(4.dp))
-                        val lastEvent = uiState.gestureHistory.firstOrNull()
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = lastEvent?.let { "${it.gestureName.replace('_', ' ')} -> ${it.action.name.replace('_', ' ')}" } ?: "None",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (lastEvent != null) MaterialTheme.colorScheme.primary else TextSecondary
+                            text = "LAST TRIGGERED ACTION",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSecondary.copy(alpha = 0.6f),
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (triggerToggle) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "JUST NOW",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = AccentCyan.copy(alpha = 0.8f),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "Sensors active",
+                        tint = AccentCyan,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = lastEvent?.let { "${it.gestureName.replace('_', ' ')} -> ${it.action.name.replace('_', ' ')}" } ?: "Waiting for gesture...",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (uiState.isServiceRunning) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(AccentCyan)
                         )
                     }
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("NIGHT MODE", style = MaterialTheme.typography.labelSmall, color = TextSecondary.copy(alpha = 0.6f))
-                        Text(
-                            text = if (uiState.settings.isNightMode) "ACTIVE" else "INACTIVE",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (uiState.settings.isNightMode) AccentCyan else TextSecondary
-                        )
-                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                // Activity Progress Bar
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .background(Color(0xFF2A3548))
+                        .clip(CircleShape)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(barWidthProgress)
+                            .fillMaxHeight()
+                            .background(AccentCyan)
+                            .clip(CircleShape)
+                    )
                 }
             }
         }
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // Hero Pulsing Button
+        // Hero Pulsing Button (Automotive style from Stitch)
         val infiniteTransition = rememberInfiniteTransition(label = "pulseRing")
         val pulseScale by infiniteTransition.animateFloat(
             initialValue = 1f,
@@ -327,7 +518,7 @@ private fun HomeScreen(
         )
 
         val stateColor = when {
-            !uiState.isServiceRunning -> MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+            !uiState.isServiceRunning -> DarkBorder
             uiState.engineState == EngineState.IDLE -> AccentSteel
             uiState.engineState == EngineState.ALERTING -> StateAlerting
             uiState.engineState == EngineState.ACTIVE -> StateActive
@@ -339,17 +530,17 @@ private fun HomeScreen(
             uiState.engineState == EngineState.IDLE -> "ENGINE SLEEPING"
             uiState.engineState == EngineState.ALERTING -> "HAND DETECTED"
             uiState.engineState == EngineState.ACTIVE -> "ENGINE LISTENING"
-            else -> "ACTIVE"
+            else -> "SYSTEM ACTIVE"
         }
 
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.size(240.dp)
+            modifier = Modifier.size(260.dp)
         ) {
-            // Outer Pulsing Glow Ring
+            // Breathing Outer Glow
             Box(
                 modifier = Modifier
-                    .size(230.dp)
+                    .size(250.dp)
                     .scale(pulseScale)
                     .clip(CircleShape)
                     .background(
@@ -362,65 +553,96 @@ private fun HomeScreen(
                     )
             )
 
-            // Tactile engine switch button
+            // Start Engine Button Bezel
             Box(
                 modifier = Modifier
-                    .size(190.dp)
+                    .size(210.dp)
                     .clip(CircleShape)
-                    .border(BorderStroke(3.dp, stateColor), CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .border(BorderStroke(1.dp, Color(0x1AFFFFFF)), CircleShape)
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(Color(0xFF1F2A3C), Color(0xFF111C2D))
+                        )
+                    )
                     .bounceClick { onToggleService(!uiState.isServiceRunning) },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = if (uiState.isServiceRunning) Icons.Default.Refresh else Icons.Default.PlayArrow,
-                    contentDescription = if (uiState.isServiceRunning) "Stop Engine" else "Start Engine",
-                    tint = if (uiState.isServiceRunning) TextPrimary else stateColor,
+                // Inner Shadow Circle
+                Box(
                     modifier = Modifier
-                        .size(36.dp)
-                        .align(Alignment.TopCenter)
-                        .padding(top = 20.dp)
-                )
-
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                        .size(194.dp)
+                        .clip(CircleShape)
+                        .border(BorderStroke(1.dp, Color(0x0DFFFFFF)), CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(Color(0x0DFFFFFF), Color(0x33000000))
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = if (uiState.isServiceRunning) "STOP" else "START",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Black,
-                        color = TextPrimary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "ENGINE",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextSecondary
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        PowerIcon(
+                            color = if (uiState.isServiceRunning) AccentCyan else stateColor,
+                            modifier = Modifier.size(60.dp)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = if (uiState.isServiceRunning) "STOP" else "START",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (uiState.isServiceRunning) AccentCyan else TextPrimary,
+                            letterSpacing = 3.sp
+                        )
+                    }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // State label pill
+        // Status Badge (Pill-shaped active/inactive badge from Stitch)
         Box(
             modifier = Modifier
-                .border(BorderStroke(1.dp, stateColor.copy(alpha = 0.5f)), RoundedCornerShape(20.dp))
-                .background(stateColor.copy(alpha = 0.08f))
-                .padding(horizontal = 14.dp, vertical = 6.dp)
+                .border(
+                    BorderStroke(
+                        1.dp,
+                        if (uiState.isServiceRunning) AccentCyan.copy(alpha = 0.5f) else DarkBorder
+                    ),
+                    RoundedCornerShape(50.dp)
+                )
+                .background(
+                    if (uiState.isServiceRunning) AccentCyan.copy(alpha = 0.1f) else DarkSurface
+                )
+                .padding(horizontal = 20.dp, vertical = 8.dp)
         ) {
-            Text(
-                text = stateLabel,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (!uiState.isServiceRunning) TextSecondary else stateColor
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(if (uiState.isServiceRunning) AccentCyan else TextSecondary)
+                        .then(
+                            if (uiState.isServiceRunning) Modifier.graphicsLayer { alpha = 0.8f } else Modifier
+                        )
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stateLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (uiState.isServiceRunning) TextPrimary else TextSecondary,
+                    letterSpacing = 1.sp
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
             text = if (!uiState.isServiceRunning) "Tap the engine to activate hand gesture mapping."
@@ -437,66 +659,22 @@ private fun HomeScreen(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // Navigation dock at the bottom left (stacked vertically)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom
-        ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+        // Quick permission prompt if needed
+        if (!uiState.hasOverlayPermission) {
+            GlassCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                onClick = onOpenOverlaySettings,
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)), CircleShape)
-                        .bounceClick(onGoHistory),
-                    contentAlignment = Alignment.Center
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.List,
-                        contentDescription = "History Log",
-                        tint = TextSecondary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)), CircleShape)
-                        .bounceClick(onGoSettings),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Configuration",
-                        tint = TextSecondary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-            }
-
-            // Quick permission prompt if needed
-            if (!uiState.hasOverlayPermission) {
-                Box(
-                    modifier = Modifier
-                        .height(84.dp)
-                        .width(200.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)), RoundedCornerShape(16.dp))
-                        .bounceClick(onOpenOverlaySettings)
-                        .padding(12.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.Center, modifier = Modifier.fillMaxSize()) {
-                        Text("Status Dot Overlay", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = TextPrimary)
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text("Tap to configure dot overlay", style = MaterialTheme.typography.bodyMedium, color = TextSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    }
+                    Text("Status Dot Overlay", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text("Tap to configure dot overlay", style = MaterialTheme.typography.bodyMedium, color = TextSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
@@ -529,11 +707,8 @@ private fun SetupWizardScreen(
             color = TextSecondary
         )
         
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+        GlassCard(
+            modifier = Modifier.fillMaxWidth()
         ) {
             Column(
                 modifier = Modifier.padding(20.dp),
@@ -548,7 +723,7 @@ private fun SetupWizardScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(1.dp)
-                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                        .background(DarkBorder.copy(alpha = 0.3f))
                 )
                 PermissionRow(
                     label = "System Notifications",
@@ -562,9 +737,9 @@ private fun SetupWizardScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)), RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(50.dp))
+                .background(Color(0x400D1F38))
+                .border(BorderStroke(1.dp, DarkBorder.copy(alpha = 0.5f)), RoundedCornerShape(50.dp))
                 .bounceClick(onRetryPermissions),
             contentAlignment = Alignment.Center
         ) {
@@ -589,10 +764,14 @@ private fun SetupWizardScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(50.dp))
                 .background(
-                    if (complete) MaterialTheme.colorScheme.primary 
-                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                    if (complete) AccentCyan 
+                    else Color(0x201A3D6C)
+                )
+                .border(
+                    BorderStroke(1.dp, if (complete) AccentCyan else Color(0x301A3D6C)),
+                    RoundedCornerShape(50.dp)
                 )
                 .then(
                     if (complete) Modifier.bounceClick(onContinue) 
@@ -604,7 +783,7 @@ private fun SetupWizardScreen(
                 text = "Continue to App",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.ExtraBold,
-                color = if (complete) DarkBg else TextSecondary.copy(alpha = 0.5f)
+                color = if (complete) DarkBg else TextSecondary.copy(alpha = 0.4f)
             ) 
         }
     }
@@ -673,7 +852,7 @@ private fun SettingsScreen(
             )
             Spacer(modifier = Modifier.weight(1f))
             TextButton(onClick = onBack) {
-                Text("Done", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text("Done", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = AccentCyan)
             }
         }
 
@@ -681,13 +860,10 @@ private fun SettingsScreen(
         Text(
             text = "PREFERENCES",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary
+            color = AccentCyan
         )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+        GlassCard(
+            modifier = Modifier.fillMaxWidth()
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -718,7 +894,7 @@ private fun SettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(1.dp)
-                            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                            .background(DarkBorder.copy(alpha = 0.3f))
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
@@ -741,13 +917,10 @@ private fun SettingsScreen(
         Text(
             text = "AUTOSTART INTEGRATION",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary
+            color = AccentCyan
         )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+        GlassCard(
+            modifier = Modifier.fillMaxWidth()
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -762,9 +935,9 @@ private fun SettingsScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(DarkBg)
+                        .background(Color(0x30081425))
                         .padding(12.dp)
-                        .border(1.dp, DarkBorder, RoundedCornerShape(8.dp)),
+                        .border(1.dp, DarkBorder.copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
@@ -790,13 +963,10 @@ private fun SettingsScreen(
         Text(
             text = "GESTURE MAPPINGS",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary
+            color = AccentCyan
         )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+        GlassCard(
+            modifier = Modifier.fillMaxWidth()
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -814,6 +984,7 @@ private fun SettingsScreen(
                             selected = uiState.settings.selectedPreset == preset,
                             onClick = { onPresetSelected(preset) },
                             label = { Text(preset.name) },
+                            shape = RoundedCornerShape(50.dp),
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = AccentCyan.copy(alpha = 0.15f),
                                 selectedLabelColor = AccentCyan,
@@ -845,14 +1016,14 @@ private fun SettingsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)), RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(50.dp))
+                .background(Color(0x400D1F38))
+                .border(BorderStroke(1.dp, DarkBorder.copy(alpha = 0.5f)), RoundedCornerShape(50.dp))
                 .bounceClick(onGoAdvanced),
             contentAlignment = Alignment.Center
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -861,6 +1032,113 @@ private fun SettingsScreen(
                     imageVector = Icons.Default.KeyboardArrowRight,
                     contentDescription = null,
                     tint = AccentCyan
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        CockpitCard()
+    }
+}
+
+@Composable
+private fun CockpitCard(modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseScale"
+    )
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseAlpha"
+    )
+
+    GlassCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(180.dp),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val w = size.width
+                val h = size.height
+                val centerX = w / 2f
+                val centerY = h / 2f
+
+                val horizonY = centerY + 30.dp.toPx()
+                
+                for (i in 1..4) {
+                    val r = 50.dp.toPx() + i * 40.dp.toPx()
+                    drawArc(
+                        color = AccentCyan.copy(alpha = 0.06f),
+                        startAngle = 180f,
+                        sweepAngle = 180f,
+                        useCenter = false,
+                        topLeft = Offset(centerX - r, horizonY - r),
+                        size = androidx.compose.ui.geometry.Size(r * 2, r * 2),
+                        style = Stroke(width = 1.dp.toPx())
+                    )
+                }
+
+                val lines = 16
+                for (i in 0..lines) {
+                    val fraction = i.toFloat() / lines
+                    val angle = 180f + fraction * 180f
+                    val rad = Math.toRadians(angle.toDouble())
+                    val endX = centerX + Math.cos(rad).toFloat() * w
+                    val endY = horizonY + Math.sin(rad).toFloat() * w
+                    drawLine(
+                        color = AccentCyan.copy(alpha = 0.04f),
+                        start = Offset(centerX, horizonY),
+                        end = Offset(endX, endY),
+                        strokeWidth = 1.dp.toPx()
+                    )
+                }
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(64.dp)
+                        .scale(pulseScale)
+                        .border(
+                            BorderStroke(2.dp, AccentCyan.copy(alpha = pulseAlpha)),
+                            CircleShape
+                        )
+                        .background(AccentCyan.copy(alpha = 0.1f), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = AccentCyan,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "SYSTEM OPTIMIZED",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AccentCyan,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 2.sp
                 )
             }
         }
@@ -877,9 +1155,9 @@ private fun MappingEditor(
     var expanded by remember { mutableStateOf(false) }
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkBg),
-        border = BorderStroke(1.dp, DarkBorder)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0x30081425)),
+        border = BorderStroke(1.dp, DarkBorder.copy(alpha = 0.5f))
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -909,6 +1187,7 @@ private fun MappingEditor(
                                 expanded = false 
                             },
                             label = { Text(action.name.replace('_', ' ')) },
+                            shape = RoundedCornerShape(50.dp),
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = AccentCyan.copy(alpha = 0.2f),
                                 selectedLabelColor = AccentCyan,
@@ -953,7 +1232,7 @@ private fun AdvancedSettingsScreen(
             )
             Spacer(modifier = Modifier.weight(1f))
             TextButton(onClick = onBack) {
-                Text("Back", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text("Back", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = AccentCyan)
             }
         }
 
@@ -961,13 +1240,10 @@ private fun AdvancedSettingsScreen(
         Text(
             text = "CORE LIMITS",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary
+            color = AccentCyan
         )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+        GlassCard(
+            modifier = Modifier.fillMaxWidth()
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -976,7 +1252,7 @@ private fun AdvancedSettingsScreen(
                 TuningSlider("Action Cooldown", "${tuning.actionCooldownMs}ms", tuning.actionCooldownMs.toFloat(), 500f..3000f) {
                     onTuningChanged(tuning.copy(actionCooldownMs = it.toLong()))
                 }
-                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)))
+                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(DarkBorder.copy(alpha = 0.3f)))
                 TuningSlider("Volume Tick Speed", "${tuning.volumeTickMs}ms", tuning.volumeTickMs.toFloat(), 200f..1000f) {
                     onTuningChanged(tuning.copy(volumeTickMs = it.toLong()))
                 }
@@ -987,13 +1263,10 @@ private fun AdvancedSettingsScreen(
         Text(
             text = "SENSITIVITY THRESHOLDS",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary
+            color = AccentCyan
         )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+        GlassCard(
+            modifier = Modifier.fillMaxWidth()
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -1002,11 +1275,11 @@ private fun AdvancedSettingsScreen(
                 TuningSlider("Pinch Threshold", String.format("%.2f", tuning.pinchThreshold), tuning.pinchThreshold, 0.05f..0.15f) {
                     onTuningChanged(tuning.copy(pinchThreshold = it))
                 }
-                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)))
+                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(DarkBorder.copy(alpha = 0.3f)))
                 TuningSlider("Pinch Release", String.format("%.2f", tuning.pinchReleaseThreshold), tuning.pinchReleaseThreshold, 0.10f..0.30f) {
                     onTuningChanged(tuning.copy(pinchReleaseThreshold = it))
                 }
-                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)))
+                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(DarkBorder.copy(alpha = 0.3f)))
                 TuningSlider("Swipe Threshold", String.format("%.2f", tuning.swipeThreshold), tuning.swipeThreshold, 0.10f..0.25f) {
                     onTuningChanged(tuning.copy(swipeThreshold = it))
                 }
@@ -1017,13 +1290,10 @@ private fun AdvancedSettingsScreen(
         Text(
             text = "ENGINE INTERVALS",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary
+            color = AccentCyan
         )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+        GlassCard(
+            modifier = Modifier.fillMaxWidth()
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -1032,11 +1302,11 @@ private fun AdvancedSettingsScreen(
                 TuningSlider("Alerting Burst", "${tuning.alertingBurstMs}ms", tuning.alertingBurstMs.toFloat(), 500f..2500f) {
                     onTuningChanged(tuning.copy(alertingBurstMs = it.toLong()))
                 }
-                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)))
+                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(DarkBorder.copy(alpha = 0.3f)))
                 TuningSlider("Active Timeout", "${tuning.activeTimeoutMs}ms", tuning.activeTimeoutMs.toFloat(), 3000f..15000f) {
                     onTuningChanged(tuning.copy(activeTimeoutMs = it.toLong()))
                 }
-                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)))
+                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(DarkBorder.copy(alpha = 0.3f)))
                 TuningSlider("Idle Polling", "${tuning.idleInferenceIntervalMs}ms", tuning.idleInferenceIntervalMs.toFloat(), 250f..800f) {
                     onTuningChanged(tuning.copy(idleInferenceIntervalMs = it.toLong()))
                 }
@@ -1048,9 +1318,9 @@ private fun AdvancedSettingsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)), RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(50.dp))
+                .background(Color(0x400D1F38))
+                .border(BorderStroke(1.dp, DarkBorder.copy(alpha = 0.5f)), RoundedCornerShape(50.dp))
                 .bounceClick(onResetTuning),
             contentAlignment = Alignment.Center
         ) {
@@ -1113,7 +1383,7 @@ private fun HistoryScreen(uiState: MainUiState, onBack: () -> Unit) {
             )
             Spacer(modifier = Modifier.weight(1f))
             TextButton(onClick = onBack) {
-                Text("Back", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text("Back", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = AccentCyan)
             }
         }
 
@@ -1151,13 +1421,10 @@ private fun HistoryScreen(uiState: MainUiState, onBack: () -> Unit) {
             }
         } else {
             val dateFormat = remember { java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()) }
-            Card(
+            GlassCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+                    .weight(1f)
             ) {
                 Column(
                     modifier = Modifier
@@ -1203,9 +1470,9 @@ private fun HistoryScreen(uiState: MainUiState, onBack: () -> Unit) {
 
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .clip(RoundedCornerShape(50.dp))
                                     .background(DarkBorder)
-                                    .border(BorderStroke(1.dp, AccentCyan.copy(alpha = 0.3f)), RoundedCornerShape(8.dp))
+                                    .border(BorderStroke(1.dp, AccentCyan.copy(alpha = 0.3f)), RoundedCornerShape(50.dp))
                                     .padding(horizontal = 10.dp, vertical = 4.dp)
                             ) {
                                 Text(
@@ -1222,7 +1489,7 @@ private fun HistoryScreen(uiState: MainUiState, onBack: () -> Unit) {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(1.dp)
-                                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+                                    .background(DarkBorder.copy(alpha = 0.3f))
                             )
                         }
                     }
