@@ -246,11 +246,11 @@ class GestureService : LifecycleService(), SensorEventListener {
     private fun handleGesture(gestureName: String) {
         Log.d("DriveSwipe", "Handling Gesture: $gestureName")
 
+        val action = resolveAction(gestureName)
         mainHandler.post {
-            overlayView?.showGestureConfirmation()
+            overlayView?.showGestureConfirmation(gestureName, action.name)
         }
 
-        val action = resolveAction(gestureName)
         when (action) {
             DriveAction.NEXT_TRACK -> dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT)
             DriveAction.PREVIOUS_TRACK -> dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS)

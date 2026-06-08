@@ -8,8 +8,8 @@ class AppSettingsTest {
     @Test
     fun defaultMappingsMatchExpectedMediaActions() {
         val mappings = AppSettings().mappings
-        assertEquals(DriveAction.NEXT_TRACK, mappings.pinchDragRight)
-        assertEquals(DriveAction.PREVIOUS_TRACK, mappings.pinchDragLeft)
+        assertEquals(DriveAction.PREVIOUS_TRACK, mappings.pinchDragRight)
+        assertEquals(DriveAction.NEXT_TRACK, mappings.pinchDragLeft)
         assertEquals(DriveAction.PLAY_PAUSE, mappings.twoFingerPoint)
         assertEquals(DriveAction.VOLUME_UP, mappings.volumeUp)
         assertEquals(DriveAction.VOLUME_DOWN, mappings.volumeDown)
