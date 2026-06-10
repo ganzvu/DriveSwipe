@@ -44,7 +44,9 @@
             android:excludeFromRecents="true"
             android:exported="true"
             android:noHistory="true"
-            android:theme="@style/Theme.DriveSwipe">
+            android:taskAffinity=""
+            android:launchMode="singleInstance"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
             <intent-filter>
                 <action android:name="com.example.driveswipe.action.ROUTINE_START" />
                 <category android:name="android.intent.category.DEFAULT" />
