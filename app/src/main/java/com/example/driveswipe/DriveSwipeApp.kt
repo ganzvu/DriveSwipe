@@ -66,6 +66,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
@@ -150,7 +151,7 @@ fun PowerIcon(
         val strokeWidthPx = 6.dp.toPx()
         drawArc(
             color = color,
-            startAngle = -240f,
+            startAngle = -60f,
             sweepAngle = 300f,
             useCenter = false,
             style = Stroke(
@@ -580,21 +581,13 @@ private fun HomeScreen(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                    Box(
+                        contentAlignment = Alignment.Center
                     ) {
+                        // Icon layer
                         PowerIcon(
                             color = if (uiState.isServiceRunning) AccentCyan else stateColor,
-                            modifier = Modifier.size(60.dp)
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = if (uiState.isServiceRunning) "STOP" else "START",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = if (uiState.isServiceRunning) AccentCyan else TextPrimary,
-                            letterSpacing = 3.sp
+                            modifier = Modifier.size(100.dp)
                         )
                     }
                 }

@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.util.TypedValue
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
@@ -32,7 +33,7 @@ class StatusOverlayView(context: Context) : View(context) {
     private val subTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#80BACAC5") // Muted TextSecondary
         style = Paint.Style.FILL
-        typeface = android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.NORMAL)
+        typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL)
     }
 
     private val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -48,11 +49,12 @@ class StatusOverlayView(context: Context) : View(context) {
     private var expanded = false
     private var displayText = ""
     private var displaySub = ""
+    private val collapseRunnable = Runnable { collapse() }
 
     init {
         borderPaint.strokeWidth = dpToPx(1f)
-        textPaint.textSize = dpToPx(12f)
-        subTextPaint.textSize = dpToPx(9f)
+        textPaint.textSize = dpToPx(13f)
+        subTextPaint.textSize = dpToPx(10f)
     }
 
     private fun dpToPx(dp: Float): Float {
@@ -100,16 +102,39 @@ class StatusOverlayView(context: Context) : View(context) {
     fun showGestureConfirmation(gestureName: String, actionName: String) {
         pulseAnimator?.cancel()
         transitionAnimator?.cancel()
+        removeCallbacks(collapseRunnable)
         
         expanded = true
         displayText = actionName.replace('_', ' ')
         displaySub = gestureName.replace('_', ' ')
+
+        // Measure text and calculate dynamic width
+        val density = resources.displayMetrics.density
+        val cornerRadiusPx = dpToPx(EXPANDED_HEIGHT_DP / 2f)
+        val dotRadiusPx = dpToPx(4f)
+        val mainTextWidth = textPaint.measureText(displayText)
+        val subTextWidth = if (displaySub.isNotEmpty()) {
+            subTextPaint.measureText(displaySub)
+        } else {
+            0f
+        }
         
-        animateLayout(EXPANDED_WIDTH_DP, EXPANDED_HEIGHT_DP) {
-            // Wait 2 seconds, then collapse
-            postDelayed({
-                collapse()
-            }, 2000)
+        val gapPx = if (displaySub.isNotEmpty()) dpToPx(16f) else 0f
+        val rightPaddingPx = if (displaySub.isNotEmpty()) dpToPx(4f) else 0f
+        
+        val totalWidthPx = cornerRadiusPx + 
+                dotRadiusPx + 
+                dpToPx(8f) + 
+                mainTextWidth + 
+                gapPx + 
+                subTextWidth + 
+                rightPaddingPx + 
+                cornerRadiusPx
+                
+        val targetWidthDp = (totalWidthPx / density).coerceAtLeast(EXPANDED_WIDTH_DP)
+        
+        animateLayout(targetWidthDp, EXPANDED_HEIGHT_DP) {
+            postDelayed(collapseRunnable, 2000)
         }
     }
 
@@ -196,10 +221,58 @@ class StatusOverlayView(context: Context) : View(context) {
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        removeCallbacks(collapseRunnable)
         pulseAnimator?.cancel()
         transitionAnimator?.cancel()
         pulseAnimator = null
         transitionAnimator = null
+    }
+
+    private var initialX = 0
+    private var initialY = 0
+    private var initialTouchX = 0f
+    private var initialTouchY = 0f
+    private var isDragging = false
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        val wm = context.getSystemService(Context.WINDOW_SERVICE) as? WindowManager ?: return super.onTouchEvent(event)
+        val params = layoutParams as? WindowManager.LayoutParams ?: return super.onTouchEvent(event)
+
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                initialX = params.x
+                initialY = params.y
+                initialTouchX = event.rawX
+                initialTouchY = event.rawY
+                isDragging = true
+                return true
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (isDragging) {
+                    val dx = event.rawX - initialTouchX
+                    val dy = event.rawY - initialTouchY
+
+                    // Since gravity is TOP or END (right-aligned),
+                    // moving left (negative dx) increases x (distance from right),
+                    // and moving right (positive dx) decreases x.
+                    params.x = initialX - dx.toInt()
+                    params.y = initialY + dy.toInt()
+
+                    // Bound within screen dimensions
+                    val displayMetrics = resources.displayMetrics
+                    params.x = params.x.coerceIn(0, displayMetrics.widthPixels - width)
+                    params.y = params.y.coerceIn(0, displayMetrics.heightPixels - height)
+
+                    runCatching { wm.updateViewLayout(this, params) }
+                }
+                return true
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                isDragging = false
+                return true
+            }
+        }
+        return super.onTouchEvent(event)
     }
 
     companion object {
@@ -209,7 +282,7 @@ class StatusOverlayView(context: Context) : View(context) {
         private const val ALPHA_IDLE = 0.45f
 
         const val NEUTRAL_SIZE_DP = 28f
-        const val EXPANDED_WIDTH_DP = 180f
+        const val EXPANDED_WIDTH_DP = 220f
         const val EXPANDED_HEIGHT_DP = 36f
         
         // Expose size to service initialization
