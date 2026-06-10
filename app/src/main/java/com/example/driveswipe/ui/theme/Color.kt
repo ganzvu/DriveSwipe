@@ -2,27 +2,29 @@ package com.example.driveswipe.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Main Color
-val MainBlue = Color(0xFF5A9FFF) // #5A9FFF
+// Main Color (Primary Teal from Stitch)
+val MainBlue = Color(0xFF57F1DB) // #57F1DB
 
 // Sub Colors
-val SubBlueLight = Color(0xFFBFD1E5)  // #BFD1E5
-val SubBlueBright = Color(0xFF0066FF) // #0066FF
-val SubBlueDark = Color(0xFF002F6C)   // #002F6C
+val SubBlueLight = Color(0xFFBACAC5)  // #BACAC5 (On Surface Variant)
+val SubBlueBright = Color(0xFF3CDDC7) // #3CDDC7 (Surface Tint)
+val SubBlueDark = Color(0xFF152031)   // #152031 (Surface Container)
 
 // Semantic mapping to existing theme variables to maintain codebase compatibility
-val DarkBg = Color(0xFF030712)         // Deep dark blue-black
-val DarkSurface = Color(0xFF071024)    // Dark Navy surface
-val DarkCard = SubBlueDark             // #002F6C
-val DarkBorder = Color(0xFF0E2E5C)     // Muted blue border
+val DarkBg = Color(0xFF081425)         // #081425 (Background)
+val DarkSurface = Color(0xFF111C2D)    // #111C2D (Surface Container Low)
+val DarkCard = Color(0x991E293B)       // #1E293B with alpha for glass (rgba(30, 41, 59, 0.6))
+val DarkBorder = Color(0xFF3C4A46)     // #3C4A46 (Outline Variant)
 
-val AccentCyan = MainBlue              // #5A9FFF (Main Color)
-val AccentSteel = SubBlueBright        // #0066FF (Sub Color)
+val AccentCyan = MainBlue              // #57F1DB
+val AccentSteel = SubBlueBright        // #3CDDC7
 
-val TextPrimary = Color(0xFFF8FAFC)    // Off-white for max readability
-val TextSecondary = SubBlueLight       // #BFD1E5 (Light Slate Blue secondary text)
+val TextPrimary = Color(0xFFD8E3FB)    // #D8E3FB (On Surface)
+val TextSecondary = SubBlueLight       // #BACAC5 (On Surface Variant)
 
 val StateAlerting = Color(0xFFFF9100)  // Safety Amber
-val StateActive = Color(0xFF00E676)    // Active Green
-val StateError = Color(0xFFFF1744)     // Coral Rose
+val StateActive = Color(0xFF57F1DB)    // Active State is Teal
+val StateError = Color(0xFFFFB4AB)     // #FFB4AB (Error)
+
+
 

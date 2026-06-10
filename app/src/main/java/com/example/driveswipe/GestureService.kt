@@ -91,7 +91,6 @@ class GestureService : LifecycleService(), SensorEventListener {
         val params = WindowManager.LayoutParams(
             sizePx, sizePx, type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         ).apply {
@@ -246,11 +245,11 @@ class GestureService : LifecycleService(), SensorEventListener {
     private fun handleGesture(gestureName: String) {
         Log.d("DriveSwipe", "Handling Gesture: $gestureName")
 
+        val action = resolveAction(gestureName)
         mainHandler.post {
-            overlayView?.showGestureConfirmation()
+            overlayView?.showGestureConfirmation(gestureName, action.name)
         }
 
-        val action = resolveAction(gestureName)
         when (action) {
             DriveAction.NEXT_TRACK -> dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT)
             DriveAction.PREVIOUS_TRACK -> dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS)

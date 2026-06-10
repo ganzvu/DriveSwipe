@@ -44,8 +44,8 @@ class DriveSwipeModelsTest {
     @Test
     fun gestureMappingsDefaultValuesAreCorrect() {
         val m = GestureMappings()
-        assertEquals(DriveAction.NEXT_TRACK, m.pinchDragRight)
-        assertEquals(DriveAction.PREVIOUS_TRACK, m.pinchDragLeft)
+        assertEquals(DriveAction.PREVIOUS_TRACK, m.pinchDragRight)
+        assertEquals(DriveAction.NEXT_TRACK, m.pinchDragLeft)
         assertEquals(DriveAction.PLAY_PAUSE, m.twoFingerPoint)
         assertEquals(DriveAction.VOLUME_UP, m.volumeUp)
         assertEquals(DriveAction.VOLUME_DOWN, m.volumeDown)
