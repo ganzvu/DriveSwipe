@@ -4,7 +4,7 @@
 
 ---
 
-## 🌟 Pitching the Future of In-Car Media
+## 🌟The Future of In-Car Media
 
 Imagine skipping tracks, pausing your music, or adjusting the volume without ever taking your eyes off the road or fumbling for tiny touch screens. **DriveSwipe** turns your Android device into a smart, gesture-controlled dashboard co-pilot. Powered by advanced real-time hand tracking, DriveSwipe listens to your gestures and maps them instantly to your music player. 
 
