@@ -317,8 +317,7 @@ fun DriveSwipeApp(
                     onMappingChanged = onMappingChanged,
                     onOpenOverlaySettings = onOpenOverlaySettings,
                     onGoAdvanced = { navController.navigate(Route.AdvancedSettings) },
-                    onBack = { navController.popBackStack() },
-                    onHudDurationChanged = onHudDurationChanged
+                    onBack = { navController.popBackStack() }
                 )
             }
             composable(Route.AdvancedSettings) {
@@ -326,6 +325,8 @@ fun DriveSwipeApp(
                     tuning = uiState.settings.tuning,
                     onTuningChanged = onTuningChanged,
                     onResetTuning = onResetTuning,
+                    hudDurationMs = uiState.settings.hudDurationMs,
+                    onHudDurationChanged = onHudDurationChanged,
                     onBack = { navController.popBackStack() }
                 )
             }
@@ -827,8 +828,7 @@ private fun SettingsScreen(
     onMappingChanged: (String, DriveAction) -> Unit,
     onOpenOverlaySettings: () -> Unit,
     onGoAdvanced: () -> Unit,
-    onBack: () -> Unit,
-    onHudDurationChanged: (Long) -> Unit
+    onBack: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -906,20 +906,6 @@ private fun SettingsScreen(
                             Text("Revoke", fontWeight = FontWeight.Bold, color = StateError)
                         }
                     }
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                        .background(DarkBorder.copy(alpha = 0.3f))
-                )
-                TuningSlider(
-                    title = "HUD Popout Duration",
-                    valueStr = String.format("%.1fs", uiState.settings.hudDurationMs / 1000f),
-                    value = uiState.settings.hudDurationMs.toFloat(),
-                    range = 1000f..10000f
-                ) {
-                    onHudDurationChanged(it.toLong())
                 }
             }
         }
@@ -1116,6 +1102,8 @@ private fun AdvancedSettingsScreen(
     tuning: GestureTuning,
     onTuningChanged: (GestureTuning) -> Unit,
     onResetTuning: () -> Unit,
+    hudDurationMs: Long,
+    onHudDurationChanged: (Long) -> Unit,
     onBack: () -> Unit
 ) {
     Column(
@@ -1160,6 +1148,15 @@ private fun AdvancedSettingsScreen(
                 Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(DarkBorder.copy(alpha = 0.3f)))
                 TuningSlider("Volume Tick Speed", "${tuning.volumeTickMs}ms", tuning.volumeTickMs.toFloat(), 200f..1000f) {
                     onTuningChanged(tuning.copy(volumeTickMs = it.toLong()))
+                }
+                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(DarkBorder.copy(alpha = 0.3f)))
+                TuningSlider(
+                    title = "HUD Popout Duration",
+                    valueStr = String.format("%.1fs", hudDurationMs / 1000f),
+                    value = hudDurationMs.toFloat(),
+                    range = 1000f..10000f
+                ) {
+                    onHudDurationChanged(it.toLong())
                 }
             }
         }
