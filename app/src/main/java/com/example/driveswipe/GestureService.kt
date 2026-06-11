@@ -146,7 +146,8 @@ class GestureService : LifecycleService(), SensorEventListener {
                 twoFingerPoint = parseAction(intent.getStringExtra(ServiceContract.EXTRA_MAP_TWO_FINGER), settings.mappings.twoFingerPoint),
                 volumeUp = parseAction(intent.getStringExtra(ServiceContract.EXTRA_MAP_VOLUME_UP), settings.mappings.volumeUp),
                 volumeDown = parseAction(intent.getStringExtra(ServiceContract.EXTRA_MAP_VOLUME_DOWN), settings.mappings.volumeDown)
-            )
+            ),
+            hudDurationMs = intent.getLongExtra(ServiceContract.EXTRA_HUD_DURATION_MS, settings.hudDurationMs)
         )
 
         gestureRecognizerHelper?.updateTuning(settings.tuning)
@@ -247,7 +248,7 @@ class GestureService : LifecycleService(), SensorEventListener {
 
         val action = resolveAction(gestureName)
         mainHandler.post {
-            overlayView?.showGestureConfirmation(gestureName, action.name)
+            overlayView?.showGestureConfirmation(action.name, settings.hudDurationMs)
         }
 
         when (action) {

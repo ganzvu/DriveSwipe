@@ -246,7 +246,8 @@ fun DriveSwipeApp(
     onPresetSelected: (GesturePreset) -> Unit,
     onMappingChanged: (String, DriveAction) -> Unit,
     onTuningChanged: (GestureTuning) -> Unit,
-    onResetTuning: () -> Unit
+    onResetTuning: () -> Unit,
+    onHudDurationChanged: (Long) -> Unit = {}
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -324,6 +325,8 @@ fun DriveSwipeApp(
                     tuning = uiState.settings.tuning,
                     onTuningChanged = onTuningChanged,
                     onResetTuning = onResetTuning,
+                    hudDurationMs = uiState.settings.hudDurationMs,
+                    onHudDurationChanged = onHudDurationChanged,
                     onBack = { navController.popBackStack() }
                 )
             }
@@ -599,15 +602,16 @@ private fun HomeScreen(
         // Status Badge (Pill-shaped active/inactive badge from Stitch)
         Box(
             modifier = Modifier
+                .background(
+                    if (uiState.isServiceRunning) AccentCyan.copy(alpha = 0.1f) else DarkSurface,
+                    shape = RoundedCornerShape(50.dp)
+                )
                 .border(
                     BorderStroke(
                         1.dp,
                         if (uiState.isServiceRunning) AccentCyan.copy(alpha = 0.5f) else DarkBorder
                     ),
                     RoundedCornerShape(50.dp)
-                )
-                .background(
-                    if (uiState.isServiceRunning) AccentCyan.copy(alpha = 0.1f) else DarkSurface
                 )
                 .padding(horizontal = 20.dp, vertical = 8.dp)
         ) {
@@ -1029,112 +1033,6 @@ private fun SettingsScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-        CockpitCard()
-    }
-}
-
-@Composable
-private fun CockpitCard(modifier: Modifier = Modifier) {
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseScale"
-    )
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.7f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseAlpha"
-    )
-
-    GlassCard(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(180.dp),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
-                val centerX = w / 2f
-                val centerY = h / 2f
-
-                val horizonY = centerY + 30.dp.toPx()
-                
-                for (i in 1..4) {
-                    val r = 50.dp.toPx() + i * 40.dp.toPx()
-                    drawArc(
-                        color = AccentCyan.copy(alpha = 0.06f),
-                        startAngle = 180f,
-                        sweepAngle = 180f,
-                        useCenter = false,
-                        topLeft = Offset(centerX - r, horizonY - r),
-                        size = androidx.compose.ui.geometry.Size(r * 2, r * 2),
-                        style = Stroke(width = 1.dp.toPx())
-                    )
-                }
-
-                val lines = 16
-                for (i in 0..lines) {
-                    val fraction = i.toFloat() / lines
-                    val angle = 180f + fraction * 180f
-                    val rad = Math.toRadians(angle.toDouble())
-                    val endX = centerX + Math.cos(rad).toFloat() * w
-                    val endY = horizonY + Math.sin(rad).toFloat() * w
-                    drawLine(
-                        color = AccentCyan.copy(alpha = 0.04f),
-                        start = Offset(centerX, horizonY),
-                        end = Offset(endX, endY),
-                        strokeWidth = 1.dp.toPx()
-                    )
-                }
-            }
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(64.dp)
-                        .scale(pulseScale)
-                        .border(
-                            BorderStroke(2.dp, AccentCyan.copy(alpha = pulseAlpha)),
-                            CircleShape
-                        )
-                        .background(AccentCyan.copy(alpha = 0.1f), CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = AccentCyan,
-                        modifier = Modifier.size(36.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "SYSTEM OPTIMIZED",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AccentCyan,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 2.sp
-                )
-            }
-        }
     }
 }
 
@@ -1204,6 +1102,8 @@ private fun AdvancedSettingsScreen(
     tuning: GestureTuning,
     onTuningChanged: (GestureTuning) -> Unit,
     onResetTuning: () -> Unit,
+    hudDurationMs: Long,
+    onHudDurationChanged: (Long) -> Unit,
     onBack: () -> Unit
 ) {
     Column(
@@ -1248,6 +1148,15 @@ private fun AdvancedSettingsScreen(
                 Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(DarkBorder.copy(alpha = 0.3f)))
                 TuningSlider("Volume Tick Speed", "${tuning.volumeTickMs}ms", tuning.volumeTickMs.toFloat(), 200f..1000f) {
                     onTuningChanged(tuning.copy(volumeTickMs = it.toLong()))
+                }
+                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(DarkBorder.copy(alpha = 0.3f)))
+                TuningSlider(
+                    title = "HUD Popout Duration",
+                    valueStr = String.format("%.1fs", hudDurationMs / 1000f),
+                    value = hudDurationMs.toFloat(),
+                    range = 1000f..10000f
+                ) {
+                    onHudDurationChanged(it.toLong())
                 }
             }
         }

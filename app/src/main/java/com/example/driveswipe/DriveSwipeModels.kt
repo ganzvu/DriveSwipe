@@ -50,7 +50,8 @@ data class AppSettings(
     val autoStartOnBluetooth: Boolean = false,
     val targetBluetoothDeviceName: String? = null,
     val targetBluetoothAddress: String? = null,
-    val autoStopOnDisconnect: Boolean = false
+    val autoStopOnDisconnect: Boolean = false,
+    val hudDurationMs: Long = 2000L
 )
 
 data class GestureEvent(

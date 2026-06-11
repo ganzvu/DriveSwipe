@@ -26,6 +26,7 @@ object GestureServiceController {
             putExtra(ServiceContract.EXTRA_MAP_TWO_FINGER, settings.mappings.twoFingerPoint.name)
             putExtra(ServiceContract.EXTRA_MAP_VOLUME_UP, settings.mappings.volumeUp.name)
             putExtra(ServiceContract.EXTRA_MAP_VOLUME_DOWN, settings.mappings.volumeDown.name)
+            putExtra(ServiceContract.EXTRA_HUD_DURATION_MS, settings.hudDurationMs)
         }
     }
 

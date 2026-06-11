@@ -65,6 +65,10 @@ class MainViewModel(private val settingsRepository: SettingsRepository) : ViewMo
         viewModelScope.launch { settingsRepository.setNightMode(enabled) }
     }
 
+    fun setHudDuration(durationMs: Long) {
+        viewModelScope.launch { settingsRepository.setHudDuration(durationMs) }
+    }
+
     fun setPreset(preset: GesturePreset) {
         viewModelScope.launch { settingsRepository.setPreset(preset) }
     }
