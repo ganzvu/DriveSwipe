@@ -1,87 +1,64 @@
-# DriveSwipe
+# 🚗 DriveSwipe — Touchless Gesture Control for Every Car
 
-DriveSwipe is an Android app for touchless in-car media control using camera-based hand gestures.
-It uses CameraX + MediaPipe for live gesture recognition and maps recognized gestures to media actions (track, play/pause, volume).
+> **Transform your daily drive with futuristic, touchless hand-gesture controls. Bring the premium, high-end gesture control of luxury vehicles to any car today.**
 
-## Features
+---
 
-- Compose multi-screen UX (`Home`, `Setup`, `Gestures`, `Modes`, `History`)
-- Foreground gesture service for reliable in-drive operation
-- Day/Night operating modes (camera + proximity flow)
-- Gesture mapping and tuning controls in-app
-- DataStore-backed persistent settings
-- Runtime gesture history feed for quick validation
-- Branded launcher icon and signed release build support
+## 🌟 Pitching the Future of In-Car Media
 
-## Gesture Set
+Imagine skipping tracks, pausing your music, or adjusting the volume without ever taking your eyes off the road or fumbling for tiny touch screens. **DriveSwipe** turns your Android device into a smart, gesture-controlled dashboard co-pilot. Powered by advanced real-time hand tracking, DriveSwipe listens to your gestures and maps them instantly to your music player. 
 
-- `Pinch_Drag_Right` -> mapped action (default `NEXT_TRACK`)
-- `Pinch_Drag_Left` -> mapped action (default `PREVIOUS_TRACK`)
-- `Two_Finger_Point` -> mapped action (default `PLAY_PAUSE`)
-- `Thumb_Up` -> mapped action (default `VOLUME_UP`, repeat by tick interval)
-- `Thumb_Down` -> mapped action (default `VOLUME_DOWN`, repeat by tick interval)
+Whether your car is a vintage classic or a daily commuter, DriveSwipe brings the next generation of smart cabin convenience to your fingertips.
 
-## Stack
+---
 
-- Kotlin
-- Jetpack Compose + Material 3
-- AndroidX Navigation
-- CameraX
-- MediaPipe Tasks Vision (`com.google.mediapipe:tasks-vision`)
-- Coroutines
-- DataStore Preferences
+## ✨ Standout Features
 
-## Requirements
+### 🛸 Interactive Glassmorphic HUD Pill
+Keep your navigation or map open while you drive. DriveSwipe floats a tiny, elegant status indicator over any active app. The moment you trigger a gesture, the dot smoothly morphs into an expanded capsule display, giving you clean, visual confirmation of the media action before sliding back down. Best of all? You can drag and position it anywhere on your screen.
 
-- Android Studio (latest stable recommended)
-- Android SDK 34
-- Min SDK 26
-- Front camera device (proximity sensor optional but recommended)
+### ⚡ Breathing Engine Dashboard
+The home screen of the app features a sleek, automotive-inspired Start/Stop engine button. It pulses with a breathing radial glow and a clean power symbol, letting you know the status of your co-pilot at a single glance.
 
-## Build
+### 🤖 Smart Autostart (Samsung Routines Integration)
+Set and forget. DriveSwipe integrates with your car’s Bluetooth and automation triggers like Samsung Routines. The app starts and stops listening in the background silently, without screen flickers or annoying interruptions. 
 
-### Debug
+### 🌓 Day & Night Intelligence
+Driving at night? DriveSwipe automatically switches sensors. During the day, it uses your front camera for high-accuracy gesture tracking. At night, it switches to a proximity-based waving mode, saving battery and preventing distracting light from the screen.
 
-```bash
-./gradlew.bat :app:assembleDebug
-```
+### ⚙️ Customizable Control Presets
+You are in the driver's seat. Use pre-configured standard presets, or remap actions (Next, Previous, Play/Pause, Volume Up/Down) to whichever hand gestures feel most natural to you.
 
-Output:
-- `app/build/outputs/apk/debug/app-debug.apk`
+---
 
-### Release
+## 🛠️ The Gesture Control Set
 
-```bash
-./gradlew.bat :app:assembleRelease
-```
+DriveSwipe responds to intuitive, easy-to-learn gestures:
 
-Output:
-- `app/build/outputs/apk/release/DriveSwipe-v1.2.apk`
+*   **Pinch & Slide Left** ➔ Skip to the next song ⏭️
+*   **Pinch & Slide Right** ➔ Rewind to the previous song ⏮️
+*   **Two-Finger Point** ➔ Play / Pause media ⏯️
+*   **Thumbs Up** ➔ Turn the volume up 🔊 (automatically ticks up)
+*   **Thumbs Down** ➔ Turn the volume down m 🔉 (automatically ticks down)
+*   **Double Wave (Night Mode)** ➔ Trigger your customized action in the dark! 🌌
 
-## Release Signing Setup
+---
 
-This project reads local signing config from `keystore.properties`.
+## 🚀 Getting Started in 3 Steps
 
-1. Copy template:
-   - `keystore.properties.example` -> `keystore.properties`
-2. Fill your real values:
-   - `storeFile`
-   - `storePassword`
-   - `keyAlias`
-   - `keyPassword`
-3. Build release:
-   - `./gradlew.bat :app:assembleRelease`
-   - 
-## Repository Layout
+1.  **Grant Permissions:** Open the app and follow the interactive **Setup Wizard** to enable camera and notification access.
+2.  **Mount Your Phone:** Secure your phone in a dashboard or air-vent mount facing you.
+3.  **Start the Engine:** Tap the pulsing Start/Stop dashboard button, open your favorite music app (Spotify, YouTube Music, Apple Music, etc.), and drive!
 
-- `app/src/main/java/com/example/driveswipe/MainActivity.kt` - app host + permission/service orchestration
-- `app/src/main/java/com/example/driveswipe/DriveSwipeApp.kt` - app UI shell and screens
-- `app/src/main/java/com/example/driveswipe/GestureService.kt` - foreground service and media action dispatch
-- `app/src/main/java/com/example/driveswipe/GestureRecognizerHelper.kt` - inference pipeline and pinch/gesture logic
-- `app/src/main/java/com/example/driveswipe/SettingsRepository.kt` - DataStore persistence layer
-- `app/src/main/java/com/example/driveswipe/DriveSwipeModels.kt` - shared settings/action models
+---
 
-## Notes
+## 💻 Technical Details (For Developers)
 
-- Camera permission is required for full functionality.
-- There are known non-blocking build warnings around `android:extractNativeLibs` and deprecated CameraX analyzer sizing API.
+If you'd like to build the project yourself or contribute:
+
+*   **Platform:** Android (Min SDK 26, Target SDK 34)
+*   **Technologies:** Kotlin, Jetpack Compose, Material 3, CameraX, MediaPipe Tasks Vision.
+
+### Quick Build Commands
+-   **Debug Build:** `./gradlew :app:assembleDebug` ➔ Generates `app/build/outputs/apk/debug/app-debug.apk`
+-   **Release Build:** Configure `keystore.properties` (see `keystore.properties.example` for details) and run `./gradlew :app:assembleRelease`
