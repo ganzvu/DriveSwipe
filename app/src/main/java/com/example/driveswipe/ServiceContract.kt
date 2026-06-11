@@ -16,6 +16,7 @@ object ServiceContract {
     const val EXTRA_MAP_TWO_FINGER = "MAP_TWO_FINGER"
     const val EXTRA_MAP_VOLUME_UP = "MAP_VOLUME_UP"
     const val EXTRA_MAP_VOLUME_DOWN = "MAP_VOLUME_DOWN"
+    const val EXTRA_HUD_DURATION_MS = "HUD_DURATION_MS"
 
     const val ACTION_GESTURE_EVENT = "com.example.driveswipe.ACTION_GESTURE_EVENT"
     const val ACTION_ENGINE_STATE_EVENT = "com.example.driveswipe.ACTION_ENGINE_STATE_EVENT"

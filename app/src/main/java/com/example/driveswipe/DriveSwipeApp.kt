@@ -246,7 +246,8 @@ fun DriveSwipeApp(
     onPresetSelected: (GesturePreset) -> Unit,
     onMappingChanged: (String, DriveAction) -> Unit,
     onTuningChanged: (GestureTuning) -> Unit,
-    onResetTuning: () -> Unit
+    onResetTuning: () -> Unit,
+    onHudDurationChanged: (Long) -> Unit = {}
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -316,7 +317,8 @@ fun DriveSwipeApp(
                     onMappingChanged = onMappingChanged,
                     onOpenOverlaySettings = onOpenOverlaySettings,
                     onGoAdvanced = { navController.navigate(Route.AdvancedSettings) },
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    onHudDurationChanged = onHudDurationChanged
                 )
             }
             composable(Route.AdvancedSettings) {
@@ -824,7 +826,8 @@ private fun SettingsScreen(
     onMappingChanged: (String, DriveAction) -> Unit,
     onOpenOverlaySettings: () -> Unit,
     onGoAdvanced: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onHudDurationChanged: (Long) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -902,6 +905,20 @@ private fun SettingsScreen(
                             Text("Revoke", fontWeight = FontWeight.Bold, color = StateError)
                         }
                     }
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(DarkBorder.copy(alpha = 0.3f))
+                )
+                TuningSlider(
+                    title = "HUD Popout Duration",
+                    valueStr = String.format("%.1fs", uiState.settings.hudDurationMs / 1000f),
+                    value = uiState.settings.hudDurationMs.toFloat(),
+                    range = 1000f..10000f
+                ) {
+                    onHudDurationChanged(it.toLong())
                 }
             }
         }

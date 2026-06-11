@@ -86,7 +86,14 @@ class MainActivity : ComponentActivity() {
                         onPresetSelected = { viewModel.setPreset(it) },
                         onMappingChanged = { gestureKey, action -> viewModel.setMapping(gestureKey, action) },
                         onTuningChanged = { viewModel.updateTuning(it) },
-                        onResetTuning = { viewModel.resetTuning() }
+                        onResetTuning = { viewModel.resetTuning() },
+                        onHudDurationChanged = { durationMs ->
+                            viewModel.setHudDuration(durationMs)
+                            if (uiState.isServiceRunning) {
+                                val updatedSettings = uiState.settings.copy(hudDurationMs = durationMs)
+                                GestureServiceController.start(this@MainActivity, updatedSettings)
+                            }
+                        }
                     )
                 }
             }

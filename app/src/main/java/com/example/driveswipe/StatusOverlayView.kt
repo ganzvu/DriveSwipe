@@ -30,12 +30,6 @@ class StatusOverlayView(context: Context) : View(context) {
         typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
     }
 
-    private val subTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#80BACAC5") // Muted TextSecondary
-        style = Paint.Style.FILL
-        typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL)
-    }
-
     private val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
     }
@@ -48,13 +42,11 @@ class StatusOverlayView(context: Context) : View(context) {
     private var currentHeightDp = NEUTRAL_SIZE_DP
     private var expanded = false
     private var displayText = ""
-    private var displaySub = ""
     private val collapseRunnable = Runnable { collapse() }
 
     init {
         borderPaint.strokeWidth = dpToPx(1f)
         textPaint.textSize = dpToPx(13f)
-        subTextPaint.textSize = dpToPx(10f)
     }
 
     private fun dpToPx(dp: Float): Float {
@@ -99,42 +91,30 @@ class StatusOverlayView(context: Context) : View(context) {
         }
     }
 
-    fun showGestureConfirmation(gestureName: String, actionName: String) {
+    fun showGestureConfirmation(actionName: String, durationMs: Long) {
         pulseAnimator?.cancel()
         transitionAnimator?.cancel()
         removeCallbacks(collapseRunnable)
         
         expanded = true
         displayText = actionName.replace('_', ' ')
-        displaySub = gestureName.replace('_', ' ')
 
         // Measure text and calculate dynamic width
         val density = resources.displayMetrics.density
         val cornerRadiusPx = dpToPx(EXPANDED_HEIGHT_DP / 2f)
         val dotRadiusPx = dpToPx(4f)
         val mainTextWidth = textPaint.measureText(displayText)
-        val subTextWidth = if (displaySub.isNotEmpty()) {
-            subTextPaint.measureText(displaySub)
-        } else {
-            0f
-        }
-        
-        val gapPx = if (displaySub.isNotEmpty()) dpToPx(16f) else 0f
-        val rightPaddingPx = if (displaySub.isNotEmpty()) dpToPx(4f) else 0f
         
         val totalWidthPx = cornerRadiusPx + 
                 dotRadiusPx + 
                 dpToPx(8f) + 
                 mainTextWidth + 
-                gapPx + 
-                subTextWidth + 
-                rightPaddingPx + 
                 cornerRadiusPx
                 
         val targetWidthDp = (totalWidthPx / density).coerceAtLeast(EXPANDED_WIDTH_DP)
         
         animateLayout(targetWidthDp, EXPANDED_HEIGHT_DP) {
-            postDelayed(collapseRunnable, 2000)
+            postDelayed(collapseRunnable, durationMs)
         }
     }
 
@@ -192,21 +172,19 @@ class StatusOverlayView(context: Context) : View(context) {
             val dotRadius = dpToPx(4f)
             val leftMargin = cornerRadius
 
-            // 1. Draw pulsing active teal status dot
-            dotPaint.color = Color.parseColor("#FF57F1DB")
+            // 1. Draw white neon glowing status dot
+            // Outer glow layer
+            dotPaint.color = Color.argb(100, 255, 255, 255)
+            canvas.drawCircle(leftMargin, h / 2f, dotRadius + dpToPx(3f), dotPaint)
+            
+            // Solid core
+            dotPaint.color = Color.WHITE
             canvas.drawCircle(leftMargin, h / 2f, dotRadius, dotPaint)
 
             // 2. Draw Main Action Text
             val textX = leftMargin + dotRadius + dpToPx(8f)
             val textY = h / 2f - (textPaint.descent() + textPaint.ascent()) / 2f
             canvas.drawText(displayText, textX, textY, textPaint)
-
-            // 3. Draw Muted Subtext / Gesture (Right)
-            if (displaySub.isNotEmpty()) {
-                val subX = w - cornerRadius - subTextPaint.measureText(displaySub) - dpToPx(4f)
-                val subY = h / 2f - (subTextPaint.descent() + subTextPaint.ascent()) / 2f
-                canvas.drawText(displaySub, subX, subY, subTextPaint)
-            }
         } else {
             // Draw Neutral dot in center
             dotPaint.color = dotColor

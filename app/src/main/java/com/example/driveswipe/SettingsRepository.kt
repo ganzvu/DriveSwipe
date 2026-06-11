@@ -31,6 +31,7 @@ class SettingsRepository(private val context: Context) {
         val alertingBurstMs = longPreferencesKey("alerting_burst_ms")
         val activeTimeoutMs = longPreferencesKey("active_timeout_ms")
         val idleInferenceIntervalMs = longPreferencesKey("idle_inference_interval_ms")
+        val hudDurationMs = longPreferencesKey("hud_duration_ms")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { prefs ->
@@ -56,7 +57,8 @@ class SettingsRepository(private val context: Context) {
                 alertingBurstMs = prefs[Keys.alertingBurstMs] ?: 1500L,
                 activeTimeoutMs = prefs[Keys.activeTimeoutMs] ?: 8000L,
                 idleInferenceIntervalMs = prefs[Keys.idleInferenceIntervalMs] ?: 350L
-            )
+            ),
+            hudDurationMs = prefs[Keys.hudDurationMs] ?: 2000L
         )
     }
 
@@ -96,6 +98,10 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun resetTuningToDefaults() {
         setTuning(GestureTuning())
+    }
+
+    suspend fun setHudDuration(durationMs: Long) {
+        context.dataStore.edit { it[Keys.hudDurationMs] = durationMs }
     }
 
     private fun actionFrom(value: String?, fallback: DriveAction): DriveAction {
