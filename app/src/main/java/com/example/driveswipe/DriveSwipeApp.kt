@@ -601,15 +601,16 @@ private fun HomeScreen(
         // Status Badge (Pill-shaped active/inactive badge from Stitch)
         Box(
             modifier = Modifier
+                .background(
+                    if (uiState.isServiceRunning) AccentCyan.copy(alpha = 0.1f) else DarkSurface,
+                    shape = RoundedCornerShape(50.dp)
+                )
                 .border(
                     BorderStroke(
                         1.dp,
                         if (uiState.isServiceRunning) AccentCyan.copy(alpha = 0.5f) else DarkBorder
                     ),
                     RoundedCornerShape(50.dp)
-                )
-                .background(
-                    if (uiState.isServiceRunning) AccentCyan.copy(alpha = 0.1f) else DarkSurface
                 )
                 .padding(horizontal = 20.dp, vertical = 8.dp)
         ) {
