@@ -43,6 +43,11 @@ class StatusOverlayView(context: Context) : View(context) {
     private var expanded = false
     private var displayText = ""
     private val collapseRunnable = Runnable { collapse() }
+    private var showWhiteGlow = false
+    private val restoreBlueGlowRunnable = Runnable {
+        showWhiteGlow = false
+        invalidate()
+    }
 
     init {
         borderPaint.strokeWidth = dpToPx(1f)
@@ -95,7 +100,9 @@ class StatusOverlayView(context: Context) : View(context) {
         pulseAnimator?.cancel()
         transitionAnimator?.cancel()
         removeCallbacks(collapseRunnable)
+        removeCallbacks(restoreBlueGlowRunnable)
         
+        showWhiteGlow = true
         expanded = true
         displayText = actionName.replace('_', ' ')
 
@@ -111,15 +118,18 @@ class StatusOverlayView(context: Context) : View(context) {
                 mainTextWidth + 
                 cornerRadiusPx
                 
-        val targetWidthDp = (totalWidthPx / density).coerceAtLeast(EXPANDED_WIDTH_DP)
+        val targetWidthDp = totalWidthPx / density
         
         animateLayout(targetWidthDp, EXPANDED_HEIGHT_DP) {
             postDelayed(collapseRunnable, durationMs)
+            postDelayed(restoreBlueGlowRunnable, 1000)
         }
     }
 
     private fun collapse() {
         expanded = false
+        showWhiteGlow = false
+        removeCallbacks(restoreBlueGlowRunnable)
         animateLayout(NEUTRAL_SIZE_DP, NEUTRAL_SIZE_DP) {
             // Restore proper status color state
             invalidate()
@@ -172,14 +182,24 @@ class StatusOverlayView(context: Context) : View(context) {
             val dotRadius = dpToPx(4f)
             val leftMargin = cornerRadius
 
-            // 1. Draw white neon glowing status dot
-            // Outer glow layer
-            dotPaint.color = Color.argb(100, 255, 255, 255)
-            canvas.drawCircle(leftMargin, h / 2f, dotRadius + dpToPx(3f), dotPaint)
-            
-            // Solid core
-            dotPaint.color = Color.WHITE
-            canvas.drawCircle(leftMargin, h / 2f, dotRadius, dotPaint)
+            // 1. Draw glowing status dot
+            if (showWhiteGlow) {
+                // Outer glow layer
+                dotPaint.color = Color.argb(100, 255, 255, 255)
+                canvas.drawCircle(leftMargin, h / 2f, dotRadius + dpToPx(3f), dotPaint)
+                
+                // Solid core
+                dotPaint.color = Color.WHITE
+                canvas.drawCircle(leftMargin, h / 2f, dotRadius, dotPaint)
+            } else {
+                // Outer blue/teal neon glow layer
+                dotPaint.color = Color.argb(100, 87, 241, 219)
+                canvas.drawCircle(leftMargin, h / 2f, dotRadius + dpToPx(3f), dotPaint)
+                
+                // Solid blue/teal core
+                dotPaint.color = Color.parseColor("#FF57F1DB")
+                canvas.drawCircle(leftMargin, h / 2f, dotRadius, dotPaint)
+            }
 
             // 2. Draw Main Action Text
             val textX = leftMargin + dotRadius + dpToPx(8f)
@@ -200,6 +220,7 @@ class StatusOverlayView(context: Context) : View(context) {
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         removeCallbacks(collapseRunnable)
+        removeCallbacks(restoreBlueGlowRunnable)
         pulseAnimator?.cancel()
         transitionAnimator?.cancel()
         pulseAnimator = null
